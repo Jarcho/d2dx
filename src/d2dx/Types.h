@@ -124,12 +124,19 @@ namespace d2dx
 		T y;
 		
 		OffsetT() = default;
+		OffsetT(OffsetT const&) = default;
 
 		OffsetT(T x_, T y_) noexcept :
 			x(x_),
 			y(y_)
 		{
 		}
+
+		template<typename U>
+		explicit OffsetT(OffsetT<U> const &other) noexcept:
+			x(static_cast<T>(other.x)),
+			y(static_cast<T>(other.y))
+		{}
 
 		OffsetT& operator+=(const OffsetT& rhs) noexcept
 		{
@@ -223,20 +230,19 @@ namespace d2dx
 		bool operator==(const OffsetT& rhs) const = default;
 		bool operator!=(const OffsetT& rhs) const = default;
 
-		T RealLength() const noexcept
+		T Length() const noexcept
 		{
 			return std::hypot(x, y);
 		}
 
-		T Length() const noexcept
+		OffsetT<T> Round() const noexcept
 		{
-			T lensqr = x * x + y * y;
-			return lensqr > T{ 0.01 } ? std::sqrt(lensqr) : T{1};
+			return { std::round(x), std::round(y) };
 		}
 
-		void Normalize() noexcept
+		void NormalizeToLen(T len) noexcept
 		{
-			const T invlen = T{ 1 } / Length();
+			const T invlen = len / Length();
 			x *= invlen;
 			y *= invlen;
 		}

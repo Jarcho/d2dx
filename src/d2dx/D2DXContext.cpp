@@ -68,8 +68,7 @@ D2DXContext::D2DXContext(
 	_options{ GetCommandLineOptions() },
 	_lastScreenOpenMode{ 0 },
 	_surfaceIdTracker{ gameHelper },
-	_textMotionPredictor{ gameHelper },
-	_unitMotionPredictor{ gameHelper },
+	_motionPredictor{ gameHelper },
 	_weatherMotionPredictor{ gameHelper }
 {
 	_threadId = GetCurrentThreadId();
@@ -228,6 +227,7 @@ void D2DXContext::OnSstWinOpen(
 		_renderContext->SetSizes(gameSize, windowSize * _options.GetWindowScale(), _renderContext->GetScreenMode());
 	}
 
+	_motionPredictor.UpdateGameSize(gameSize);
 	_batchCount = 0;
 	_vertexCount = 0;
 	_scratchBatch = Batch();
@@ -346,9 +346,9 @@ void D2DXContext::CheckMajorGameState()
 		for (int32_t i = 0; i < batchCount; ++i)
 		{
 			const Batch& batch = _batches.items[i];
-			const int32_t y0 = _vertices.items[batch.GetStartVertex()].GetY();
+			const float y0 = _vertices.items[batch.GetStartVertex()].GetY();
 
-			if (batch.GetHash() == 0x4bea7b80 && y0 >= 550)
+			if (batch.GetHash() == 0x4bea7b80 && y0 >= 550.f)
 			{
 				_majorGameState = MajorGameState::TitleScreen;
 				break;
@@ -421,8 +421,8 @@ void D2DXContext::OnBufferSwap()
 	{
 		Timer timer(ProfCategory::UnitMotion);
 
-		auto playerOffset = _unitMotionPredictor.GetOffset(_gameHelper->GetPlayerUnit(), _playerScreenPos, true);
-		_unitMotionPredictor.UpdateShadowVerticies(_vertices.items);
+		auto playerOffset = _motionPredictor.GetUnitOffset(_gameHelper->GetPlayerUnit(), _playerScreenPos, true);
+		_motionPredictor.UpdateUnitShadowVerticies(_vertices.items);
 
 		for (uint32_t i = 0; i < _batchCount; ++i)
 		{
@@ -458,7 +458,7 @@ void D2DXContext::OnBufferSwap()
 
 	{
 		Timer timer(ProfCategory::UnitMotion);
-		_unitMotionPredictor.PrepareForNextFrame(
+		_motionPredictor.PrepareForNextFrame(
 			prevProjectedTimeFp,
 			_renderContext->GetPrevFrameTimeFp(),
 			_renderContext->GetProjectedFrameTimeFp());
@@ -594,7 +594,7 @@ void D2DXContext::OnDrawPoint(
 
 	const D2::Vertex* d2Vertex = (const D2::Vertex*)pt;
 
-	vertex0.SetPosition((int32_t)d2Vertex->x, (int32_t)d2Vertex->y);
+	vertex0.SetPosition(d2Vertex->x, d2Vertex->y);
 	vertex0.SetTexcoord((int32_t)d2Vertex->s >> stShift, (int32_t)d2Vertex->t >> stShift);
 	vertex0.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 	vertex0.SetSurfaceId(_surfaceIdTracker.GetCurrentSurfaceId());
@@ -667,7 +667,7 @@ void D2DXContext::OnDrawLine(
 
 		auto dir = endPos - startPos;
 		float len = dir.Length();
-		dir.Normalize();
+		dir.NormalizeToLen(1.);
 
 		const float blendFactor = 0.1f;
 		const float oneMinusBlendFactor = 1.0f - blendFactor;
@@ -679,7 +679,7 @@ void D2DXContext::OnDrawLine(
 		else
 		{
 			_avgDir = _avgDir * oneMinusBlendFactor + dir * blendFactor;
-			_avgDir.Normalize();
+			_avgDir.NormalizeToLen(1.);
 		}
 		dir = _avgDir;
 
@@ -696,11 +696,11 @@ void D2DXContext::OnDrawLine(
 		Vertex vertex3 = vertex0;
 		Vertex vertex4 = vertex0;
 
-		vertex0.SetPosition((int32_t)midPos.x, (int32_t)midPos.y);
-		vertex1.SetPosition((int32_t)startPos.x, (int32_t)startPos.y);
-		vertex2.SetPosition((int32_t)(midPos.x + wideningVec.x), (int32_t)(midPos.y + wideningVec.y));
-		vertex3.SetPosition((int32_t)endPos.x, (int32_t)endPos.y);
-		vertex4.SetPosition((int32_t)(midPos.x - wideningVec.x), (int32_t)(midPos.y - wideningVec.y));
+		vertex0.SetPosition(midPos.x, midPos.y);
+		vertex1.SetPosition(startPos.x, startPos.y);
+		vertex2.SetPosition(midPos.x + wideningVec.x, midPos.y + wideningVec.y);
+		vertex3.SetPosition(endPos.x, endPos.y);
+		vertex4.SetPosition(midPos.x - wideningVec.x, midPos.y - wideningVec.y);
 
 		uint32_t c = vertex0.GetColor();
 		c &= 0x00FFFFFF;
@@ -733,38 +733,25 @@ void D2DXContext::OnDrawLine(
 	}
 	else
 	{
-		OffsetF wideningVec = { d2Vertex0->y - d2Vertex1->y, d2Vertex1->x - d2Vertex0->x };
-		const float len = wideningVec.Length();
-		const float halfinvlen = 1.0f / (2.0f * len);
-		wideningVec *= halfinvlen;
+		OffsetF widening(d2Vertex1->y - d2Vertex0->y, d2Vertex1->x - d2Vertex0->x);
+		widening.NormalizeToLen(0.5f);
 
 		Vertex vertex1 = vertex0;
 		Vertex vertex2 = vertex0;
 		Vertex vertex3 = vertex0;
 
-		vertex0.SetPosition(
-			(int32_t)(d2Vertex0->x - wideningVec.x),
-			(int32_t)(d2Vertex0->y - wideningVec.y));
-
-		vertex1.SetPosition(
-			(int32_t)(d2Vertex0->x + wideningVec.x),
-			(int32_t)(d2Vertex0->y + wideningVec.y));
-
-		vertex2.SetPosition(
-			(int32_t)(d2Vertex1->x - wideningVec.x),
-			(int32_t)(d2Vertex1->y - wideningVec.y));
-
-		vertex3.SetPosition(
-			(int32_t)(d2Vertex1->x + wideningVec.x),
-			(int32_t)(d2Vertex1->y + wideningVec.y));
+		vertex0.SetPosition(d2Vertex1->x + widening.x, d2Vertex1->y - widening.y);
+		vertex1.SetPosition(d2Vertex0->x + widening.x, d2Vertex0->y - widening.y);
+		vertex2.SetPosition(d2Vertex1->x - widening.x, d2Vertex1->y + widening.y);
+		vertex3.SetPosition(d2Vertex0->x - widening.x, d2Vertex0->y + widening.y);
 
 		assert((_vertexCount + 6) < _vertices.capacity);
 		_vertices.items[_vertexCount++] = vertex0;
 		_vertices.items[_vertexCount++] = vertex1;
 		_vertices.items[_vertexCount++] = vertex2;
 		_vertices.items[_vertexCount++] = vertex1;
-		_vertices.items[_vertexCount++] = vertex2;
 		_vertices.items[_vertexCount++] = vertex3;
+		_vertices.items[_vertexCount++] = vertex2;
 
 		batch.SetVertexCount(6);
 	}
@@ -859,7 +846,7 @@ void D2DXContext::OnDrawVertexArray(
 	for (int32_t i = 0; i < 3; ++i)
 	{
 		const D2::Vertex* d2Vertex = (const D2::Vertex*)pointers[i];
-		v.SetPosition((int32_t)d2Vertex->x, (int32_t)d2Vertex->y);
+		v.SetPosition(d2Vertex->x + _drawOffset.x, d2Vertex->y + _drawOffset.y);
 		v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 		v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 		*pVertices++ = v;
@@ -874,7 +861,7 @@ void D2DXContext::OnDrawVertexArray(
 			*pVertices++ = vertex0;
 			*pVertices++ = pVertices[-2];
 			const D2::Vertex* d2Vertex = (const D2::Vertex*)pointers[i + 3];
-			v.SetPosition((int32_t)d2Vertex->x, (int32_t)d2Vertex->y);
+			v.SetPosition(d2Vertex->x + _drawOffset.x, d2Vertex->y + _drawOffset.y);
 			v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 			v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 			*pVertices++ = v;
@@ -887,7 +874,7 @@ void D2DXContext::OnDrawVertexArray(
 			*pVertices++ = pVertices[-2];
 			*pVertices++ = pVertices[-2];
 			const D2::Vertex* d2Vertex = (const D2::Vertex*)pointers[i + 3];
-			v.SetPosition((int32_t)d2Vertex->x, (int32_t)d2Vertex->y);
+			v.SetPosition(d2Vertex->x + _drawOffset.x, d2Vertex->y + _drawOffset.y);
 			v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 			v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 			*pVertices++ = v;
@@ -940,7 +927,7 @@ void D2DXContext::OnDrawVertexArrayContiguous(
 
 	for (int32_t i = 0; i < 4; ++i)
 	{
-		v.SetPosition((int32_t)d2Vertices[i].x, (int32_t)d2Vertices[i].y);
+		v.SetPosition(d2Vertices[i].x + _drawOffset.x, d2Vertices[i].y + _drawOffset.y);
 		v.SetTexcoord((int32_t)d2Vertices[i].s >> _glideState.stShift, (int32_t)d2Vertices[i].t >> _glideState.stShift);
 		v.SetColor(maskedConstantColor | (d2Vertices[i].color & iteratedColorMask));
 		pVertices[i] = v;
@@ -950,7 +937,7 @@ void D2DXContext::OnDrawVertexArrayContiguous(
 	pVertices[5] = pVertices[2];
 
 	if (_captureShadowVerticies) {
-		_unitMotionPredictor.AddShadowVerticies(_vertexCount + 6);
+		_motionPredictor.AddUnitShadowVerticies(_vertexCount + 6);
 	}
 
 	_vertexCount += 6;
@@ -1136,14 +1123,14 @@ void D2DXContext::InsertLogoOnTitleScreen()
 	Size gameSize;
 	_renderContext->GetCurrentMetrics(&gameSize, nullptr, nullptr);
 
-	const int32_t x = gameSize.width - 90 - 16;
-	const int32_t y = gameSize.height - 50 - 16;
+	const float x = static_cast<float>(gameSize.width - 90 - 16);
+	const float y = static_cast<float>(gameSize.height - 50 - 16);
 	const uint32_t color = 0xFFFFa090;
 
 	Vertex vertex0(x, y, 0, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex1(x + 80, y, 80, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex2(x + 80, y + 41, 80, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex3(x, y + 41, 0, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
+	Vertex vertex1(x + 80.f, y, 80, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
+	Vertex vertex2(x + 80.f, y + 41.f, 80, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
+	Vertex vertex3(x, y + 41.f, 0, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
 
 	assert((_vertexCount + 6) < _vertices.capacity);
 	_vertices.items[_vertexCount++] = vertex0;
@@ -1289,7 +1276,6 @@ void D2DXContext::OnBufferClear()
 {
 	if (_majorGameState == MajorGameState::InGame && !_options.GetFlag(OptionsFlag::NoMotionPrediction))
 	{
-		_textMotionPredictor.Update(_renderContext.get());
 		_weatherMotionPredictor.Update(_renderContext.get());
 	}
 }
@@ -1304,23 +1290,9 @@ Offset D2DXContext::BeginDrawText(
 	_scratchBatch.SetTextureCategory(TextureCategory::UserInterface);
 	_isDrawingText = true;
 
-	Offset offset{ 0, 0 };
-
 	if (!str)
 	{
-		return offset;
-	}
-
-	if (d2Function != D2Function::D2Win_DrawText && !_options.GetFlag(OptionsFlag::NoMotionPrediction))
-	{
-		auto hash = fnv_32a_buf((void*)str, wcslen(str), FNV1_32A_INIT);
-
-		const uint64_t textId =
-			(((uint64_t)(returnAddress & 0xFFFFFF) << 40ULL) |
-			((uint64_t)((uintptr_t)str & 0xFFFFFF) << 16ULL)) ^
-			(uint64_t)hash;
-
-		offset = _textMotionPredictor.GetOffset(textId, pos);
+		return { 0, 0 };
 	}
 
 	if (_gameHelper->GetVersion() == GameVersion::Lod114d)
@@ -1342,27 +1314,45 @@ Offset D2DXContext::BeginDrawText(
 		}
 	}
 
-	return offset;
+	OffsetF offset = { 0.f, 0.f };
+	if (d2Function != D2Function::D2Win_DrawText && !_options.GetFlag(OptionsFlag::NoMotionPrediction))
+	{
+		auto hash = fnv_32a_buf((void*)str, wcslen(str), FNV1_32A_INIT);
+
+		const uint64_t textId =
+			(((uint64_t)(returnAddress & 0xFFFFFF) << 40ULL) |
+			((uint64_t)((uintptr_t)str & 0xFFFFFF) << 16ULL)) ^
+			(uint64_t)hash;
+
+		offset = _motionPredictor.GetTextOffset(textId, pos);
+		if (d2Function == D2Function::D2Win_DrawFramedText) {
+			return Offset(offset.Round());
+		}
+		else {
+			_drawOffset = offset;
+		}
+	}
+
+	return { 0, 0 };
 }
 
 void D2DXContext::EndDrawText()
 {
 	_scratchBatch.SetTextureCategory(TextureCategory::Unknown);
 	_isDrawingText = false;
+	_drawOffset = { 0.f, 0.f };
 }
 
 _Use_decl_annotations_
-Offset D2DXContext::BeginDrawImage(
+void D2DXContext::BeginDrawImage(
 	const D2::CellContextAny* cellContext,
 	uint32_t drawMode,
 	Offset pos,
 	D2Function d2Function)
 {
-	Offset offset{ 0,0 };
-
 	if (_isDrawingText)
 	{
-		return offset;
+		return;
 	}
 
 	Timer timer(ProfCategory::UnitMotion);
@@ -1375,9 +1365,9 @@ Offset D2DXContext::BeginDrawImage(
 			_scratchBatch.SetTextureCategory(TextureCategory::Player);
 			_playerScreenPos = pos;
 		}
-		else
+		else if (!_options.GetFlag(OptionsFlag::NoMotionPrediction))
 		{
-			offset = _unitMotionPredictor.GetOffset(currentlyDrawingUnit, pos, false);
+			_drawOffset = _motionPredictor.GetUnitOffset(currentlyDrawingUnit, pos, false);
 		}
 	}
 	else
@@ -1392,9 +1382,9 @@ Offset D2DXContext::BeginDrawImage(
 			{
 				_scratchBatch.SetTextureCategory(TextureCategory::Player);
 			}
-			else
+			else if (!_options.GetFlag(OptionsFlag::NoMotionPrediction))
 			{
-				_unitMotionPredictor.StartShadow(pos, _vertexCount);
+				_motionPredictor.StartUnitShadow(pos, _vertexCount);
 				_captureShadowVerticies = true;
 			}
 		}
@@ -1410,8 +1400,6 @@ Offset D2DXContext::BeginDrawImage(
 			}
 		}
 	}
-
-	return offset;
 }
 
 void D2DXContext::EndDrawImage()
@@ -1422,6 +1410,7 @@ void D2DXContext::EndDrawImage()
 	}
 
 	_captureShadowVerticies = false;
+	_drawOffset = { 0.f, 0.f };
 	_scratchBatch.SetTextureCategory(TextureCategory::Unknown);
 }
 

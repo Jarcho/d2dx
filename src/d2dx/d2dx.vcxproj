@@ -280,7 +280,6 @@
     <ClInclude Include="D2DXConfigurator.h" />
     <ClInclude Include="dx256_bmp.h" />
     <ClInclude Include="ErrorHandling.h" />
-    <ClInclude Include="TextMotionPredictor.h" />
     <ClInclude Include="IBuiltinResMod.h" />
     <ClInclude Include="ID2DXContext.h" />
     <ClInclude Include="ID2InterceptionHandler.h" />
@@ -303,7 +302,7 @@
     <ClInclude Include="TextureCachePolicyBitPmru.h" />
     <ClInclude Include="TextureHasher.h" />
     <ClInclude Include="Types.h" />
-    <ClInclude Include="UnitMotionPredictor.h" />
+    <ClInclude Include="MotionPredictor.h" />
     <ClInclude Include="Vertex.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="D2DXContext.h" />
@@ -329,7 +328,6 @@
     <ClCompile Include="D2Types.cpp" />
     <ClCompile Include="Detours.cpp" />
     <ClCompile Include="D2DXConfigurator.cpp" />
-    <ClCompile Include="TextMotionPredictor.cpp" />
     <ClCompile Include="Metrics.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="RenderContextResources.cpp" />
@@ -358,7 +356,7 @@
     </ClCompile>
     <ClCompile Include="TextureCachePolicyBitPmru.cpp" />
     <ClCompile Include="TextureHasher.cpp" />
-    <ClCompile Include="UnitMotionPredictor.cpp" />
+    <ClCompile Include="MotionPredictor.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="WeatherMotionPredictor.cpp" />
   </ItemGroup>
