@@ -119,7 +119,10 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(OutDir)glide3x.dll" "C:\Program Files\Diablo II\"</Command>
+      <Command>if defined D2Path (
+    copy /Y "$(SolutionDir)$(Configuration)\$(TargetFilename)" "$(D2Path)" 
+    echo  "$(Configuration)\$(TargetFilename) ==&gt; $(D2Path)"
+)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -158,7 +161,10 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(OutDir)glide3x.dll" "C:\Program Files\Diablo II\"</Command>
+      <Command>if defined D2Path (
+    copy /Y "$(SolutionDir)$(Configuration)\$(TargetFilename)" "$(D2Path)" 
+    echo  "$(Configuration)\$(TargetFilename) ==&gt; $(D2Path)"
+)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (ResMod)|Win32'">
@@ -197,7 +203,10 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(OutDir)glide3x.dll" "C:\Program Files\Diablo II\"</Command>
+      <Command>if defined D2Path (
+    copy /Y "$(SolutionDir)$(Configuration)\$(TargetFilename)" "$(D2Path)" 
+    echo  "$(Configuration)\$(TargetFilename) ==&gt; $(D2Path)"
+)</Command>
     </PostBuildEvent>
     <ResourceCompile>
       <PreprocessorDefinitions>_UNICODE;UNICODE;D2DX_INTERNAL_RES_MOD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -239,7 +248,10 @@
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
     <PostBuildEvent>
-      <Command>copy "$(OutDir)glide3x.dll" "C:\Program Files\Diablo II\"</Command>
+      <Command>if defined D2Path (
+    copy /Y "$(SolutionDir)$(Configuration)\$(TargetFilename)" "$(D2Path)" 
+    echo  "$(Configuration)\$(TargetFilename) ==&gt; $(D2Path)"
+)</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
