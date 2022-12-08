@@ -419,7 +419,7 @@ void D2DXContext::OnBufferSwap()
 	if (!_options.GetFlag(OptionsFlag::NoMotionPrediction) &&
 		_majorGameState == MajorGameState::InGame)
 	{
-		Timer timer(ProfCategory::UnitMotion);
+		Timer timer(ProfCategory::MotionPrediction);
 
 		auto playerOffset = _motionPredictor.GetUnitOffset(_gameHelper->GetPlayerUnit(), _playerScreenPos, true);
 		_motionPredictor.UpdateUnitShadowVerticies(_vertices.items);
@@ -457,7 +457,7 @@ void D2DXContext::OnBufferSwap()
 	_skipCountingSleep = false;
 
 	{
-		Timer timer(ProfCategory::UnitMotion);
+		Timer timer(ProfCategory::MotionPrediction);
 		_motionPredictor.PrepareForNextFrame(
 			prevProjectedTimeFp,
 			_renderContext->GetPrevFrameTimeFp(),
@@ -648,6 +648,7 @@ void D2DXContext::OnDrawLine(
 	if (!_options.GetFlag(OptionsFlag::NoMotionPrediction) &&
 		currentlyDrawingWeatherParticles)
 	{
+		Timer timer(ProfCategory::MotionPrediction);
 		uint32_t currentWeatherParticleIndex = *currentlyDrawingWeatherParticleIndexPtr;
 		const int32_t act = _gameHelper->GetCurrentAct();
 
@@ -733,6 +734,7 @@ void D2DXContext::OnDrawLine(
 	}
 	else
 	{
+		Timer timer(ProfCategory::Draw);
 		OffsetF widening(d2Vertex1->y - d2Vertex0->y, d2Vertex1->x - d2Vertex0->x);
 		widening.NormalizeToLen(0.5f);
 
@@ -1276,6 +1278,7 @@ void D2DXContext::OnBufferClear()
 {
 	if (_majorGameState == MajorGameState::InGame && !_options.GetFlag(OptionsFlag::NoMotionPrediction))
 	{
+		Timer timer(ProfCategory::MotionPrediction);
 		_weatherMotionPredictor.Update(_renderContext.get());
 	}
 }
@@ -1287,6 +1290,7 @@ Offset D2DXContext::BeginDrawText(
 	uint32_t returnAddress,
 	D2Function d2Function)
 {
+	Timer timer(ProfCategory::MotionPrediction);
 	_scratchBatch.SetTextureCategory(TextureCategory::UserInterface);
 	_isDrawingText = true;
 
@@ -1350,12 +1354,11 @@ void D2DXContext::BeginDrawImage(
 	Offset pos,
 	D2Function d2Function)
 {
+	Timer timer(ProfCategory::MotionPrediction);
 	if (_isDrawingText)
 	{
 		return;
 	}
-
-	Timer timer(ProfCategory::UnitMotion);
 
 	if (currentlyDrawingUnit)
 	{
@@ -1415,7 +1418,6 @@ void D2DXContext::EndDrawImage()
 }
 
 #ifdef D2DX_PROFILE
-#ifdef D2DX_PROFILE
 void D2DXContext::WriteProfile() {
 	if (_majorGameState == MajorGameState::InGame) {
 		auto hashSize = _textureHasher.MissedBytes();
@@ -1438,8 +1440,9 @@ void D2DXContext::WriteProfile() {
 			"TextureDownload: %.4fms (%u events)\n"
 			"TextureSource: %.4fms (%u events)\n"
 			"TextureHash Miss Rate: %u/%u (%llu%s)\n"
-			"UnitMotion: %.4fms (%u events)\n"
+			"MotionPrediction: %.4fms (%u events)\n"
 			"Draw: %.4fms (%u events)\n"
+			"Sleep: %.4fms (%u events)\n"
 			"ToGpu: %.4fms\n"
 			"PostPresent: %.4fms\n"
 			"PrePresent: %.4fms\n"
@@ -1452,10 +1455,12 @@ void D2DXContext::WriteProfile() {
 			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::TextureSource)]),
 			_events[static_cast<std::size_t>(ProfCategory::TextureSource)],
 			_textureHasher.Misses(), _textureHasher.Lookups(), hashSize, hashUnit,
-			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::UnitMotion)]),
-			_events[static_cast<std::size_t>(ProfCategory::UnitMotion)],
+			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::MotionPrediction)]),
+			_events[static_cast<std::size_t>(ProfCategory::MotionPrediction)],
 			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::Draw)]),
 			_events[static_cast<std::size_t>(ProfCategory::Draw)],
+			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::Sleep)]),
+			_events[static_cast<std::size_t>(ProfCategory::Sleep)],
 			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::ToGpu)]),
 			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::PostPresent)]),
 			TimeToMs(_times[static_cast<std::size_t>(ProfCategory::PrePresent)]),
@@ -1467,5 +1472,4 @@ void D2DXContext::WriteProfile() {
 		_textureHasher.ResetStats();
 	}
 }
-#endif
 #endif
