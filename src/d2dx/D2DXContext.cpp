@@ -1300,9 +1300,16 @@ Offset D2DXContext::BeginDrawText(
 		// In 1.14d, some color codes are black. Remap them.
 
 		// Bright white -> white
-		while (wchar_t* subStr = wcsstr(str, L"ÿc/"))
-		{
-			subStr[2] = L'0';
+		static const wchar_t offenders[] = L"/#%'\x06\x07\x09\x0c";
+		static const wchar_t remappeds[] = L"00001<$5";   // white*4 + coral(red), sage(green), teal(turquoise), gray
+		assert(sizeof(offenders) == sizeof(replaces));
+
+		wchar_t* end3 = str + wcslen(str) - 3;
+		const wchar_t* opch;
+		for (wchar_t* look = str; look <= end3; look++) {
+			if (look[0] == L'\xff' && look[1] == L'c'
+				&& (opch = wcschr(offenders, look[2])))
+				look[2] = remappeds[opch - offenders];
 		}
 	}
 
