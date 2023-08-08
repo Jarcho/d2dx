@@ -741,17 +741,19 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 
 	case WM_ACTIVATEAPP:
 		// Don't let the game minimize/pause itself when the window isn't selected.
-		if (!wParam)
-		{
-			return 0;
-		}
-		break;
+		return 0;
 
 	case WM_SIZE:
-		// Allow the game to pause itself when minimized.
-		if (wParam == SIZE_MINIMIZED)
+		// Allow the game to pause/resume itself when minimized/restored.
+		switch (wParam)
 		{
+		case SIZE_MINIMIZED:
 			DefSubclassProc(hWnd, WM_ACTIVATEAPP, FALSE, 0);
+			break;
+		
+		case SIZE_RESTORED:
+			DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+			break;
 		}
 		break;
 
