@@ -31,7 +31,7 @@ namespace d2dx
 	struct ComException final : public std::runtime_error
 	{
 		ComException(HRESULT hr_, const char* func_, int32_t line_) :
-			std::runtime_error(detail::GetMessageForHRESULT(hr, func_, line_)),
+			std::runtime_error(detail::GetMessageForHRESULT(hr_, func_, line_)),
 			hr{ hr_ },
 			func{ func_ },
 			line{ line_ }

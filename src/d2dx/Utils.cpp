@@ -205,7 +205,7 @@ char* d2dx::detail::GetMessageForHRESULT(
 {
     static Buffer<char> buffer(4096);
     auto msg = std::system_category().message(hr);
-    sprintf_s(buffer.items, buffer.capacity, "%s line %i\nHRESULT: 0x%08x\nMessage: %s", func, line, hr, msg.c_str());
+    sprintf_s(buffer.items, buffer.capacity, "%s line %i\nHRESULT: 0x%.8lx\nMessage: %s", func, line, (unsigned long)hr, msg.c_str());
     return buffer.items;
 }
 
