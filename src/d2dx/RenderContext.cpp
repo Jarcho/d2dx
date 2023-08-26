@@ -81,7 +81,7 @@ RenderContext::RenderContext(
 		!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
 
 #ifndef NDEBUG
-	ShowCursor_Real(TRUE);
+	while (ShowCursor_Real(TRUE) < 0) {}
 #endif
 
 	RECT clientRect;
@@ -781,7 +781,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 	case WM_NCMOUSEMOVE:
 		if (CURSOR_HIDDEN)
 		{
-			ShowCursor_Real(TRUE);
+			while (ShowCursor_Real(TRUE) < 0) {}
 			CURSOR_HIDDEN = false;
 		}
 		return 0;
@@ -790,7 +790,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 #ifdef NDEBUG
 			if (!CURSOR_HIDDEN)
 			{
-				ShowCursor_Real(FALSE);
+				while (ShowCursor_Real(FALSE) >= 0) {}
 				CURSOR_HIDDEN = true;
 			}
 #endif
