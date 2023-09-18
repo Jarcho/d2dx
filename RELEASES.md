@@ -1,3 +1,30 @@
+Version 0.101.0 (2024-10-01)
+============================
+
+New features
+------------
+
+- Motion smoothing and FPS unlocking has been rewritten and implemented as external module (useable by any other renderer)
+  - Perspective mode is notably improved. The distortion it applies based on a unit's position is now recalculated for the unit's displayed position rather than the position from the game's last update.
+  - Almost all Diablo II versions are now supported starting from v1.00.
+- Resolution mod is now loaded on v1.14c
+
+Changes
+-------
+
+- V-sync is disabled by default in favour of a frame limiter. It can be enabled if you really want it. (If you have an old config file it will still be followed)
+
+Bug fixes
+---------
+
+- Character animations in the menu no longer run faster than normal.
+- CPU use in game and menus with V-sync off has been fixed
+- CPU use when the game is minimized has been fixed.
+- Text label drift when moving with motion smoothing enabled has been fixed.
+- Text label jiggling with motion smoothing enabled has been fixed. (The game still sometimes sucks at ordering item labels and can cause them to be rearranged at a very fast rate when moving)
+- Unit cursor detection is now done with the unit's displayed position rather than the position from the game's last update. Note this is a small a effect (a few pixels at most).
+- Don't mute the music when reactivating the game's window.
+
 Version 0.100.2 (2023-05-19)
 ============================
 

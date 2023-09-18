@@ -1,7 +1,6 @@
 # D2DX
 
-D2DX is a Glide-wrapper and mod that makes the classic Diablo II/LoD run well on modern PCs, while honoring the original look and feel of the game.
-Play in a window or in fullscreen, glitch-free, with or without enhancements like widescreen, true high framerate and anti-aliasing.
+D2DX is a Glide-wrapper and mod that makes the classic Diablo II/LoD run well on modern PCs, while honoring the original look and feel of the game. Play in a window or in fullscreen, glitch-free, with or without enhancements like widescreen, true high framerate and anti-aliasing.
 
 ## Features
 
@@ -27,16 +26,11 @@ Play in a window or in fullscreen, glitch-free, with or without enhancements lik
 
 ## Version Compatibility
 
-High resolution and motion smoothing are only supported on the following game versions:
+Basic rendering is supported for all Diablo II versions and should work for all mods.
 
-- 1.09d
-- 1.10f
-- 1.12
-- 1.13c
-- 1.13d
-- 1.14d
+High resolution is provided by [SGD2FreeRes] and supports the following versions: `1.09d`, `1.10`, `1.12`, `1.13c`, `1.13d`, `1.14c`, `1.14d`.
 
-Other versions only support basic rendering.
+High FPS and motion smoothing is provided by [D2fps] and supports nearly all released Diablo II versions. This may have compatibility issues with other mods providing the same features.
 
 For compatibility with mods, see the [wiki](https://github.com/bolrog/d2dx/wiki/Compatibility-with-other-mods).
 
@@ -46,7 +40,7 @@ This readme contains basic information to get you started. See the [D2DX wiki](h
 
 ## Installation
 
-  Copy the included "glide3x.dll" into your Diablo II folder.
+  Copy the included "glide3x.dll" and "d2fps.dll" into your Diablo II folder.
 
   Note that in some cases you may have to also download and install the Visual C++ runtime library from Microsoft: <https://aka.ms/vs/16/release/vc_redist.x86.exe>
 
@@ -93,3 +87,6 @@ D2DX uses the following third party libraries:
 - pocketlzma by Robin Berg Pettersen
 - 9-tap Catmull-Rom texture filtering by TheRealMJP.
 - xxHash by Yann Collet
+
+[SGD2FreeRes]: https://github.com/mir-diablo-ii-tools/SlashGaming-Diablo-II-Free-Resolution
+[D2fps]: https://github.com/Jarcho/d2-rs/tree/main/d2fps

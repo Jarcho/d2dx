@@ -25,8 +25,8 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,100,2,0
- PRODUCTVERSION 0,100,2,0
+ FILEVERSION 0,101,0,0
+ PRODUCTVERSION 0,101,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -43,12 +43,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Jarcho"
             VALUE "FileDescription", "Glide wrapper for D2"
-            VALUE "FileVersion", "0.100.2.0"
+            VALUE "FileVersion", "0.101.0.0"
             VALUE "InternalName", "d2dx.dll"
             VALUE "LegalCopyright", "Copyright (C) 2023"
             VALUE "OriginalFilename", "d2dx.dll"
             VALUE "ProductName", "D2DX"
-            VALUE "ProductVersion", "0.100.2.0"
+            VALUE "ProductVersion", "0.101.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -104,18 +104,18 @@ LANGUAGE LANG_SWEDISH, SUBLANG_SWEDISH
 // TEXTINCLUDE
 //
 
-1 TEXTINCLUDE 
+1 TEXTINCLUDE
 BEGIN
     "resource.h\0"
 END
 
-2 TEXTINCLUDE 
+2 TEXTINCLUDE
 BEGIN
     "#include ""winres.h""\r\n"
     "\0"
 END
 
-3 TEXTINCLUDE 
+3 TEXTINCLUDE
 BEGIN
     "\r\n"
     "\0"
@@ -137,4 +137,3 @@ END
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-
