@@ -820,8 +820,14 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 
 			const float xscale = (float)renderRect.size.width / gameSize.width;
 			const float yscale = (float)renderRect.size.height / gameSize.height;
-			lParam = static_cast<int32_t>((mousePos.x - renderRect.offset.x) / xscale);
-			lParam |= static_cast<int32_t>((mousePos.y - renderRect.offset.y) / yscale) << 16;
+			const int32_t xpos = static_cast<int32_t>((mousePos.x - renderRect.offset.x) / xscale);
+			const int32_t ypos = static_cast<int32_t>((mousePos.y - renderRect.offset.y) / yscale);
+
+			if (xpos >= gameSize.width || ypos >= gameSize.height) {
+				// Prevent Diablo II from using `SetCursor` to nudge the mouse back.
+				return 0;
+			}
+			lParam = xpos | (ypos << 16);
 		}
 	}
 
