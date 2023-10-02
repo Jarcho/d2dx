@@ -1,3 +1,11 @@
+Version 0.101.1 (2024-10-02)
+============================
+
+Bug fixes
+---------
+
+Don't move the cursor when it's positioned on the bottom row of the window's pixels.
+
 Version 0.101.0 (2024-10-01)
 ============================
 
