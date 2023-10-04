@@ -108,7 +108,7 @@ RenderContext::RenderContext(
 
 	if (_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoVSync))
 	{
-		if (_dxgiAllowTearingFlagSupported)
+		if (_dxgiAllowTearingFlagSupported && GetWindowsVersion().major >= 10)
 		{
 			_syncStrategy = RenderContextSyncStrategy::AllowTearing;
 			_swapChainCreateFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
