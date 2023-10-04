@@ -26,7 +26,6 @@
 #include "IGlide3x.h"
 #include "IRenderContext.h"
 #include "IWin32InterceptionHandler.h"
-#include "CompatibilityModeDisabler.h"
 #include "SurfaceIdTracker.h"
 #include "TextureHasher.h"
 #include "WeatherMotionPredictor.h"
@@ -42,8 +41,7 @@ namespace d2dx
 	public:
 		D2DXContext(
 			_In_ const std::shared_ptr<IGameHelper>& gameHelper,
-			_In_ const std::shared_ptr<ISimd>& simd,
-			_In_ const std::shared_ptr<CompatibilityModeDisabler>& compatibilityModeDisabler);
+			_In_ const std::shared_ptr<ISimd>& simd);
 		
 		virtual ~D2DXContext() noexcept;
 
@@ -257,7 +255,6 @@ namespace d2dx
 		std::shared_ptr<IRenderContext> _renderContext;
 		std::shared_ptr<IGameHelper> _gameHelper;
 		std::shared_ptr<ISimd> _simd;
-		std::shared_ptr<CompatibilityModeDisabler> _compatibilityModeDisabler;
 		BuiltinMods _builtinMods;
 		TextureHasher _textureHasher;
 		WeatherMotionPredictor _weatherMotionPredictor;

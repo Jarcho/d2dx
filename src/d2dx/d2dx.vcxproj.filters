@@ -58,7 +58,7 @@
     <ClCompile Include="Metrics.cpp" />
     <ClCompile Include="D2DXContextFactory.cpp" />
     <ClCompile Include="RenderContextResources.cpp" />
-    <ClCompile Include="CompatibilityModeDisabler.cpp" />
+    <ClCompile Include="CompatModeCheck.cpp" />
     <ClCompile Include="SurfaceIdTracker.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="..\..\thirdparty\toml\toml.c">
@@ -138,7 +138,7 @@
     <ClInclude Include="D2DXContextFactory.h" />
     <ClInclude Include="IWin32InterceptionHandler.h" />
     <ClInclude Include="RenderContextResources.h" />
-    <ClInclude Include="CompatibilityModeDisabler.h" />
+    <ClInclude Include="CompatModeCheck.h" />
     <ClInclude Include="..\..\thirdparty\stb_image\stb_image_write.h">
       <Filter>thirdparty\stb_image</Filter>
     </ClInclude>

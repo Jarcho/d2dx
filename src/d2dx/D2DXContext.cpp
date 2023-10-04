@@ -29,6 +29,7 @@
 #include "Vertex.h"
 #include "dx256_bmp.h"
 #include "Profiler.h"
+#include "CompatModeCheck.h"
 
 using namespace d2dx;
 using namespace DirectX::PackedVector;
@@ -52,11 +53,9 @@ static Options GetCommandLineOptions()
 _Use_decl_annotations_
 D2DXContext::D2DXContext(
 	const std::shared_ptr<IGameHelper>& gameHelper,
-	const std::shared_ptr<ISimd>& simd,
-	const std::shared_ptr<CompatibilityModeDisabler>& compatibilityModeDisabler) :
+	const std::shared_ptr<ISimd>& simd) :
 	_gameHelper{ gameHelper },
 	_simd{ simd },
-	_compatibilityModeDisabler{ compatibilityModeDisabler },
 	_frame(0),
 	_majorGameState(MajorGameState::Unknown),
 	_paletteKeys(D2DX_MAX_PALETTES, true),
@@ -74,23 +73,46 @@ D2DXContext::D2DXContext(
 {
 	_threadId = GetCurrentThreadId();
 
-	if (!_options.GetFlag(OptionsFlag::NoCompatModeFix))
+	auto windowsVersion = GetWindowsVersion();
+	D2DX_LOG("Windows version: %u.%u (build %u).", windowsVersion.major, windowsVersion.minor, windowsVersion.build);
+
+	bool requireNoCompat = !_options.GetFlag(OptionsFlag::NoCompatModeFix);
+	CompatModeState mode = CheckCompatMode(requireNoCompat);
+	switch (mode)
 	{
-		_compatibilityModeDisabler->DisableCompatibilityMode();
+	case CompatModeState::Updated:
+		MessageBox(NULL, L"D2DX detected that 'compatibility mode' (e.g. for Windows XP) was set for the game, but this isn't necessary for D2DX and will cause problems.\n\nThis has now been fixed for you. Please re-launch the game.", L"D2DX", MB_OK);
+		TerminateProcess(GetCurrentProcess(), -1);
+		break;
+
+	case CompatModeState::Enabled:
+		if (requireNoCompat)
+		{
+			MessageBox(NULL, L"D2DX detected that 'compatibility mode' (e.g. for Windows XP) was set for the game, but this isn't necessary for D2DX and will cause problems.\n\nPlease disable 'compatibility mode' for both 'Game.exe' and 'Diablo II.exe'.", L"D2DX", MB_OK);
+			TerminateProcess(GetCurrentProcess(), -1);
+		}
+		D2DX_LOG("Compatibility mode detected");
+		windowsVersion = GetActualWindowsVersion();
+		if (windowsVersion.major != 0)
+		{
+			D2DX_LOG("Actual windows version: %u.%u (build %u).", windowsVersion.major, windowsVersion.minor, windowsVersion.build);
+		}
+		break;
+
+	case CompatModeState::Disabled:
+	case CompatModeState::Unknown:
+	default:
+		break;
 	}
 
-	auto apparentWindowsVersion = GetWindowsVersion();
-	auto actualWindowsVersion = GetActualWindowsVersion();
-	D2DX_LOG("Apparent Windows version: %u.%u (build %u).", apparentWindowsVersion.major, apparentWindowsVersion.minor, apparentWindowsVersion.build);
-	D2DX_LOG("Actual Windows version: %u.%u (build %u).", actualWindowsVersion.major, actualWindowsVersion.minor, actualWindowsVersion.build);
 
 #ifndef D2DX_UNITTEST
 	_builtinMods.Init(GetModuleHandleW(L"glide3x.dll"), GetSuggestedCustomResolution(), _options);
 #else
-		_options.SetFlag(OptionsFlag::NoResMod, true);
-		_options.SetFlag(OptionsFlag::NoFpsMod, true);
+	_options.SetFlag(OptionsFlag::NoResMod, true);
+	_options.SetFlag(OptionsFlag::NoFpsMod, true);
 #endif
-	}
+}
 
 D2DXContext::~D2DXContext() noexcept
 {

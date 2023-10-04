@@ -20,21 +20,12 @@
 
 namespace d2dx
 {
-	class CompatibilityModeDisabler final
-	{
-	public:
-		CompatibilityModeDisabler();
-		
-		~CompatibilityModeDisabler() noexcept {}
-
-		void DisableCompatibilityMode();
-
-	private:
-		bool FixCompatibilityMode(
-			_In_ HKEY hRootKey,
-			_In_z_ const wchar_t* filename);
-
-		bool HasOsCompatibilityOption(
-			_In_z_ const wchar_t* options);
+	enum class CompatModeState {
+		Enabled,
+		Updated,
+		Disabled,
+		Unknown
 	};
+
+	CompatModeState CheckCompatMode(_In_ bool remove);
 }

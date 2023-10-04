@@ -257,7 +257,7 @@
     <ClInclude Include="..\..\thirdparty\toml\toml.h" />
     <ClInclude Include="..\..\thirdparty\xxhash\xxhash.h" />
     <ClInclude Include="BuiltinMods.h" />
-    <ClInclude Include="CompatibilityModeDisabler.h" />
+    <ClInclude Include="CompatModeCheck.h" />
     <ClInclude Include="D2DXContextFactory.h" />
     <ClInclude Include="D2Types.h" />
     <ClInclude Include="Detours.h" />
@@ -317,7 +317,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release (ResMod)|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="BuiltinMods.cpp" />
-    <ClCompile Include="CompatibilityModeDisabler.cpp" />
+    <ClCompile Include="CompatModeCheck.cpp" />
     <ClCompile Include="D2DXContextFactory.cpp" />
     <ClCompile Include="Detours.cpp" />
     <ClCompile Include="D2DXConfigurator.cpp" />
