@@ -1,10 +1,20 @@
+Version 0.101.2 (2024-10-05)
+============================
+
+Bug fixes
+---------
+
+- Fix crash when vsync is disabled and compatibility mode is enabled.
+- Fix loading D2FPS feature flags from the config file.
+- Fix compatibility mode sometimes being detected when it's not enabled.
+
 Version 0.101.1 (2024-10-02)
 ============================
 
 Bug fixes
 ---------
 
-Don't move the cursor when it's positioned on the bottom row of the window's pixels.
+- Don't move the cursor when it's positioned on the bottom row of the window's pixels.
 
 Version 0.101.0 (2024-10-01)
 ============================
