@@ -24,20 +24,16 @@ using namespace d2dx;
 
 static const wchar_t* CompatModeStrings[] =
 {
-	L"WIN8"
-	L"WIN7",
+	L"WIN8RTM",
+	L"WIN7RTM",
 	L"VISTASP2",
 	L"VISTASP1",
-	L"VISTA",
+	L"VISTARTM",
 	L"WINXPSP3",
 	L"WINXPSP2",
-	L"WINXPSP1",
-	L"WINXP",
 	L"WIN98",
 	L"WIN95",
 };
-
-const wchar_t* CompatModeKey = L"SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers";
 
 CompatModeState CheckCompatModeReg(
 	_In_ HKEY hRootKey,
@@ -51,16 +47,8 @@ CompatModeState CheckCompatModeReg(
 		0,
 		KEY_QUERY_VALUE | KEY_WOW64_64KEY | (remove ? KEY_SET_VALUE : 0),
 		&hKey);
-	switch (result)
+	if (result != ERROR_SUCCESS)
 	{
-	case ERROR_SUCCESS:
-		break;
-
-	case ERROR_FILE_NOT_FOUND:
-		D2DX_LOG("nf");
-		return CompatModeState::Disabled;
-
-	default:
 		return CompatModeState::Unknown;
 	}
 
@@ -152,6 +140,19 @@ CompatModeState CheckCompatModeReg(
 _Use_decl_annotations_
 CompatModeState d2dx::CheckCompatMode(bool remove)
 {
+	auto version = d2dx::GetWindowsVersion();
+	auto realVersion = d2dx::GetActualWindowsVersion();
+
+	if (realVersion.major == version.major && realVersion.minor == version.minor)
+	{
+		return CompatModeState::Disabled;
+	}
+	if (version.major > 6 || (version.major == 6 && version.minor >= 3))
+	{
+		// Compat mode is set to at least win10.
+		return CompatModeState::Disabled;
+	}
+	
 	HMODULE module = GetModuleHandleW(nullptr);
 	std::vector<wchar_t> path;
 	DWORD result = MAX_PATH / 2;
@@ -167,32 +168,19 @@ CompatModeState d2dx::CheckCompatMode(bool remove)
 	} while (result == path.size());
 	path.resize(static_cast<std::size_t>(result + 1));
 	
-	CompatModeState machine_state = CheckCompatModeReg(HKEY_LOCAL_MACHINE, path.data(), false);
-	if (machine_state == CompatModeState::Enabled)
+	CompatModeState ustate = CheckCompatModeReg(HKEY_CURRENT_USER, path.data(), remove);
+	if (ustate == CompatModeState::Enabled || ustate == CompatModeState::Updated)
 	{
-		return machine_state;
+		return ustate;
 	}
 
-	CompatModeState user_state = CheckCompatModeReg(HKEY_CURRENT_USER, path.data(), remove);
-	if (user_state == CompatModeState::Enabled || user_state == CompatModeState::Updated)
+	CompatModeState mstate = CheckCompatModeReg(HKEY_LOCAL_MACHINE, path.data(), false);
+	if (mstate == CompatModeState::Enabled)
 	{
-		return user_state;
+		return mstate;
 	}
 
-	if (machine_state == CompatModeState::Disabled)
-	{
-		return machine_state;
-	}
-
-	auto reportedWindowsVersion = d2dx::GetWindowsVersion();
-	auto realWindowsVersion = d2dx::GetActualWindowsVersion();
-
-	return reportedWindowsVersion.major > 6 || (reportedWindowsVersion.major == 6 && reportedWindowsVersion.minor >= 3)
-		? CompatModeState::Disabled // Reported >= Win10
-		: realWindowsVersion.major == 0
-		? CompatModeState::Unknown // No real version
-		: reportedWindowsVersion.major < realWindowsVersion.major
-		|| (reportedWindowsVersion.major == realWindowsVersion.major && reportedWindowsVersion.minor < realWindowsVersion.minor)
-		? CompatModeState::Enabled // reported < real
-		: CompatModeState::Disabled; // reported >= real
+	return realVersion.major == 0 && mstate == CompatModeState::Unknown && ustate == CompatModeState::Unknown
+		? CompatModeState::Unknown
+		: CompatModeState::Enabled;
 }
