@@ -84,9 +84,10 @@ namespace d2dx
 		virtual void Present() override;
 
 		virtual void WriteToScreen(
-			_In_reads_(width* height) const uint32_t* pixels,
+			_In_reads_(width* height) const uint8_t* pixels,
 			_In_ int32_t width,
 			_In_ int32_t height,
+			_In_ bool is16Bit,
 			_In_ bool forCinematic) override;
 
 		virtual void SetPalette(

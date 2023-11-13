@@ -535,11 +535,41 @@ void RenderContext::LoadGammaTable(
 		_resources->GetTexture1D(RenderContextTexture1D::GammaTable), 0, nullptr, values, valueCount * sizeof(uint32_t), 0);
 }
 
-_Use_decl_annotations_
-void RenderContext::WriteToScreen(
-	const uint32_t* pixels,
+void CopyImageBuf(
+	uint8_t* dst,
+	const uint8_t* src,
+	int32_t skipHeight,
 	int32_t width,
 	int32_t height,
+	bool is16Bit
+) {
+	if (is16Bit) {
+		auto p = (const uint16_t*)src + width * skipHeight;
+		auto end = p + width * height;
+		for (; p < end; ++p, dst += 4)
+		{
+			uint32_t b = *p & 0b11111;
+			dst[0] = (b << 3) | ((b >> 2) & 0b111);
+
+			uint32_t g = (*p >> 5) & 0b111111;
+			dst[1] = (g << 2) | ((g >> 4) & 0b11);
+
+			uint32_t r = (*p >> 11) & 0b11111;
+			dst[2] = (r << 3) | ((r >> 2) & 0b111);
+		}
+	}
+	else
+	{
+		memcpy(dst, src + width * skipHeight * 4, width * height * 4);
+	}
+}
+
+_Use_decl_annotations_
+void RenderContext::WriteToScreen(
+	const uint8_t* pixels,
+	int32_t width,
+	int32_t height,
+	bool is16Bit,
 	bool forCinematic)
 {
 	D3D11_MAPPED_SUBRESOURCE ms;
@@ -547,29 +577,41 @@ void RenderContext::WriteToScreen(
 	uint32_t startVertexLocation = _vbWriteIndex;
 	uint32_t vertexCount = 0;
 
-	if (forCinematic) {
+	ID3D11PixelShader* shader = nullptr;
+	if (is16Bit)
+	{
+		shader = _resources->GetPixelShader(RenderContextPixelShader::VideoGamma);
+	}
+	else
+	{
+		shader = _resources->GetPixelShader(RenderContextPixelShader::Video);
+	}
+
+	if (forCinematic)
+	{
 		SetSizes({ width, 292 }, _windowSize, _screenMode);
 		D2DX_CHECK_HR(_deviceContext->Map(_resources->GetCinematicTexture(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, &pixels[width * 94], width * 292 * 4);
+		CopyImageBuf((uint8_t*)ms.pData, pixels, 94, 640, 292, is16Bit);
 		_deviceContext->Unmap(_resources->GetCinematicTexture(), 0);
 		SetShaderState(
 			_resources->GetVertexShader(RenderContextVertexShader::Display),
-			_resources->GetPixelShader(RenderContextPixelShader::Video),
+			shader,
 			_resources->GetCinematicSrv(),
 			nullptr);
 		vertexCount = UpdateVerticesWithFullScreenTriangle(_gameSize, _resources->GetCinematicTextureSize(), { 0,0,_gameSize.width, _gameSize.height });
 	}
-	else {
+	else
+	{
+		SetSizes({ width, height }, _windowSize, _screenMode);
 		D2DX_CHECK_HR(_deviceContext->Map(_resources->GetVideoTexture(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms));
-		memcpy(ms.pData, pixels, width * height * 4);
+		CopyImageBuf((uint8_t*)ms.pData, pixels, 0, 640, 480, is16Bit);
 		_deviceContext->Unmap(_resources->GetVideoTexture(), 0);
 		SetShaderState(
 			_resources->GetVertexShader(RenderContextVertexShader::Display),
-			_resources->GetPixelShader(RenderContextPixelShader::Video),
+			shader,
 			_resources->GetVideoSrv(),
 			nullptr);
 		vertexCount = UpdateVerticesWithFullScreenTriangle(_gameSize, _resources->GetVideoTextureSize(), { 0,0,_gameSize.width, _gameSize.height });
-		UpdateViewport({ 0,0,_gameSize.width, _gameSize.height });
 	}
 
 	_deviceContext->Draw(vertexCount, startVertexLocation);

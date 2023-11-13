@@ -37,6 +37,9 @@
     <FxCompile Include="GameBilinearPS.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="VideoGammaPS.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="TextureCache.cpp" />

@@ -31,6 +31,7 @@
 #include "GameBilinearPS_cso.h"
 #include "GameVS_cso.h"
 #include "VideoPS_cso.h"
+#include "VideoGammaPS_cso.h"
 #include "GammaPS_cso.h"
 #include "ResolveAA_cso.h"
 #include "Metrics.h"
@@ -114,6 +115,9 @@ void RenderContextResources::CreateShadersAndInputLayout(
 
 	D2DX_CHECK_HR(
 		device->CreatePixelShader(VideoPS_cso, ARRAYSIZE(VideoPS_cso), NULL, &_pixelShaders[(int32_t)RenderContextPixelShader::Video]));
+
+	D2DX_CHECK_HR(
+		device->CreatePixelShader(VideoGammaPS_cso, ARRAYSIZE(VideoGammaPS_cso), NULL, &_pixelShaders[(int32_t)RenderContextPixelShader::VideoGamma]));
 
 	D2DX_CHECK_HR(
 		device->CreateVertexShader(DisplayVS_cso, ARRAYSIZE(DisplayVS_cso), NULL, &_vertexShaders[(int32_t)RenderContextVertexShader::Display]));

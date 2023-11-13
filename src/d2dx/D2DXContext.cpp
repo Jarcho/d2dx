@@ -996,11 +996,11 @@ void D2DXContext::OnLoadGammaTable(
 
 _Use_decl_annotations_
 void D2DXContext::OnLfbUnlock(
-	const uint32_t* lfbPtr,
-	uint32_t strideInBytes)
+	const uint8_t* lfbPtr,
+	bool is16Bit)
 {
 	bool forCinematic = !(_majorGameState == MajorGameState::Unknown || _majorGameState == MajorGameState::FmvIntro);
-	_renderContext->WriteToScreen(lfbPtr, 640, 480, forCinematic);
+	_renderContext->WriteToScreen(lfbPtr, 640, 480, is16Bit, forCinematic);
 }
 
 _Use_decl_annotations_

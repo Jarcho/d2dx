@@ -482,13 +482,21 @@ FX_ENTRY FxBool FX_CALL
 {
 	try
 	{
-		if (type == GR_LFB_WRITE_ONLY && buffer == GR_BUFFER_FRONTBUFFER && writeMode == GR_LFBWRITEMODE_8888 &&
-			origin == GR_ORIGIN_UPPER_LEFT && !pixelPipeline && info && info->size == 20)
+		if (type == GR_LFB_WRITE_ONLY && buffer == GR_BUFFER_FRONTBUFFER && (writeMode == GR_LFBWRITEMODE_8888 || writeMode == GR_LFBWRITEMODE_565) &&
+			origin == GR_ORIGIN_UPPER_LEFT && !pixelPipeline && info && (info->size == 20 || info->size == 0))
 		{
 			if (!lfbInfo.lfbPtr)
 			{
 				lfbInfo.lfbPtr = (uint8_t*)malloc(640 * 480 * 4);
+			}
+
+			if (writeMode == GR_LFBWRITEMODE_8888)
+			{
 				lfbInfo.strideInBytes = 640 * 4;
+			}
+			else
+			{
+				lfbInfo.strideInBytes = 640 * 2;
 			}
 
 			lfbInfo.writeMode = writeMode;
@@ -515,7 +523,7 @@ FX_ENTRY FxBool FX_CALL
 	{
 		if (type == GR_LFB_WRITE_ONLY && buffer == GR_BUFFER_FRONTBUFFER)
 		{
-			D2DXContextFactory::GetInstance()->OnLfbUnlock((const uint32_t*)lfbInfo.lfbPtr, lfbInfo.strideInBytes);
+			D2DXContextFactory::GetInstance()->OnLfbUnlock((const uint8_t*)lfbInfo.lfbPtr, lfbInfo.writeMode == GR_LFBWRITEMODE_565);
 			return FXTRUE;
 		}
 		else

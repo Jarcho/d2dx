@@ -138,8 +138,8 @@ namespace d2dx
 			_In_ GrChromakeyMode_t mode);
 		
 		virtual void OnLfbUnlock(
-			_In_reads_bytes_(strideInBytes * 480) const uint32_t* lfbPtr,
-			_In_ uint32_t strideInBytes);
+			_In_reads_bytes_(640 * 480 * 4) const uint8_t* lfbPtr,
+			_In_ bool is16Bit);
 		
 		virtual void OnGammaCorrectionRGB(
 			_In_ float red,

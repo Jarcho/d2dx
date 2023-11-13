@@ -43,13 +43,14 @@ namespace d2dx
 		GameBilinear = 1,
 		Gamma = 2,
 		Video = 3,
-		DisplayIntegerScale = 4,
-		DisplayNonintegerScale = 5,
-		DisplayBilinearScale = 6,
-		DisplayCatmullRomScale = 7,
-		DisplayNearestScale = 8,
-		ResolveAA = 9,
-		Count = 10
+		VideoGamma = 4,
+		DisplayIntegerScale = 5,
+		DisplayNonintegerScale = 6,
+		DisplayBilinearScale = 7,
+		DisplayCatmullRomScale = 8,
+		DisplayNearestScale = 9,
+		ResolveAA = 10,
+		Count = 11
 	};
 
 	enum class RenderContextTexture1D
