@@ -247,6 +247,12 @@ namespace d2dx
 			return { width * (int32_t)value, height * (int32_t)value };
 		}
 
+		Size operator*(float value) noexcept
+		{
+			return { static_cast<int32_t>(static_cast<float>(width) * value),
+				static_cast<int32_t>(static_cast<float>(height) * value) };
+		}
+
 		bool operator==(const Size& rhs) const noexcept
 		{
 			return width == rhs.width && height == rhs.height;

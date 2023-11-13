@@ -116,10 +116,10 @@ void Options::ApplyCfg(
 
 	if (window)
 	{
-		auto windowScale = toml_int_in(window, "scale");
+		auto windowScale = toml_double_in(window, "scale");
 		if (windowScale.ok)
 		{
-			SetWindowScale((int32_t)windowScale.u.i);
+			SetWindowScale((float)windowScale.u.d);
 		}
 
 		auto windowPosition = toml_array_in(window, "position");
@@ -178,8 +178,21 @@ void Options::ApplyCommandLine(
 			static_cast<unsigned int>(upscale[11]) - static_cast<unsigned int>('0')));
 	}
 
-	if (strstr(cmdLine, "-dxscale3")) SetWindowScale(3);
-	else if (strstr(cmdLine, "-dxscale2")) SetWindowScale(2);
+	char const* scale = strstr(cmdLine, "-dxscale=");
+	if (scale)
+	{
+		scale = scale + 9;
+		auto end = const_cast<char*>(scale);
+		while (*end != 0 && *end != ' ' && *end != '\t')
+		{
+			++end;
+		}
+		float s = strtof(scale, &end);
+		if (scale != end)
+		{
+			SetWindowScale(s);
+		}
+	}
 
 	if (strstr(cmdLine, "-dxdbg_dump_textures")) SetFlag(OptionsFlag::DbgDumpTextures, true);
 }
@@ -204,13 +217,13 @@ void Options::SetFlag(
 	}
 }
 
-int32_t Options::GetWindowScale() const
+float Options::GetWindowScale() const
 {
 	return _windowScale;
 }
 
 void Options::SetWindowScale(
-	_In_ int32_t windowScale)
+	_In_ float windowScale)
 {
 	_windowScale = min(3, max(1, windowScale));
 }

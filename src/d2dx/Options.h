@@ -71,10 +71,10 @@ namespace d2dx
 			_In_ OptionsFlag flag,
 			_In_ bool value);
 
-		int32_t GetWindowScale() const;
+		float GetWindowScale() const;
 
 		void SetWindowScale(
-			_In_ int32_t zoomLevel);
+			_In_ float zoomLevel);
 
 		Offset GetWindowPosition() const;
 
@@ -98,7 +98,7 @@ namespace d2dx
 
 	private:
 		uint32_t _flags = 1 << (int)OptionsFlag::NoVSync;
-		int32_t _windowScale = 1;
+		float _windowScale = 1;
 		Offset _windowPosition{ -1, -1 };
 		Size _userSpecifiedGameSize{ -1, -1 };
 		UpscaleMethod _upscaleMethod{ UpscaleMethod::HighQuality };
