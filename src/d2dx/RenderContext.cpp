@@ -766,6 +766,8 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 	DWORD_PTR dwRefData)
 {
 	thread_local bool CURSOR_HIDDEN = false;
+	thread_local bool APP_ACTIVE = true;
+	thread_local bool GAME_APP_ACTIVE = true;
 	RenderContext* renderContext = (RenderContext*)dwRefData;
 
 	switch (uMsg)
@@ -783,18 +785,48 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 
 	case WM_ACTIVATEAPP:
 		// Don't let the game minimize/pause itself when the window isn't selected.
+		if (wParam)
+		{
+			if (!GAME_APP_ACTIVE)
+			{
+				APP_ACTIVE = true;
+				GAME_APP_ACTIVE = true;
+				DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+			}
+			else if (!APP_ACTIVE)
+			{
+				APP_ACTIVE = true;
+				GAME_APP_ACTIVE = false;
+
+				// If just ActivateApp(true) is sent, then the music will be muted for some reason.
+				DefSubclassProc(hWnd, WM_ACTIVATEAPP, FALSE, 0);
+				GAME_APP_ACTIVE = true;
+				DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+			}
+		}
+		else
+		{
+			APP_ACTIVE = false;
+		}
 		return 0;
+
 
 	case WM_SIZE:
 		// Allow the game to pause/resume itself when minimized/restored.
 		switch (wParam)
 		{
 		case SIZE_MINIMIZED:
+			if (GAME_APP_ACTIVE && !APP_ACTIVE) {
 			DefSubclassProc(hWnd, WM_ACTIVATEAPP, FALSE, 0);
+				GAME_APP_ACTIVE = false;
+			}
 			break;
 		
 		case SIZE_RESTORED:
+			if (!GAME_APP_ACTIVE && APP_ACTIVE) {
 			DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+				GAME_APP_ACTIVE = true;
+			}
 			break;
 		}
 		break;
