@@ -817,23 +817,25 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 		{
 		case SIZE_MINIMIZED:
 			if (GAME_APP_ACTIVE && !APP_ACTIVE) {
-			DefSubclassProc(hWnd, WM_ACTIVATEAPP, FALSE, 0);
+				DefSubclassProc(hWnd, WM_ACTIVATEAPP, FALSE, 0);
 				GAME_APP_ACTIVE = false;
 			}
 			break;
 		
 		case SIZE_RESTORED:
 			if (!GAME_APP_ACTIVE && APP_ACTIVE) {
-			DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
+				DefSubclassProc(hWnd, WM_ACTIVATEAPP, TRUE, 0);
 				GAME_APP_ACTIVE = true;
 			}
 			break;
 		}
 		break;
-
+		
 	case WM_WINDOWPOSCHANGED:
 		renderContext->ClipCursor(true);
-		break;
+
+		// The music is muted if the game recieves this for some reason.
+		return 0;
 
 	case WM_ENTERSIZEMOVE:
 		renderContext->UnclipCursor();
