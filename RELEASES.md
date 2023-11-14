@@ -1,3 +1,27 @@
+Version 0.102.0 (2024-11-14)
+============================
+
+New features
+------------
+
+- Add motion smoothing to the background of the Arcane Sanctuary.
+- Add motion smoothing to missiles.
+
+Bug fixes
+---------
+
+- Don't mute the music when the window is repositioned.
+- Don't let button states get stuck when the window loses focus.
+- Fix video rendering on v1.00—v1.01.
+- Fix animation speed of the cursor on higher frame rates.
+- Fix animation speed of the clouds in the Arreat Summit on higher frame rates.
+- Fix motion smoothing when switching from 25fps to other frame rates (e.g. switching ).
+
+Changes
+-------
+
+- Allow window scale to be a floating point number.
+
 Version 0.101.2 (2024-10-05)
 ============================
 
