@@ -1,3 +1,11 @@
+Version 0.102.1 (2024-11-16)
+============================
+
+Bug fixes
+---------
+
+- Fix rounding error in the frame limiter that sometimes caused extra frames to be rendered (frame rate and cpu speed dependent).
+
 Version 0.102.0 (2024-11-14)
 ============================
 
