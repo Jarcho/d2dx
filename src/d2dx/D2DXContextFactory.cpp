@@ -34,9 +34,7 @@ ID2DXContext* D2DXContextFactory::GetInstance(
 
 	if (!instance && !destroyed && createIfNeeded)
 	{
-		auto gameHelper = std::make_shared<GameHelper>();
-		auto simd = std::make_shared<SimdSse2>();
-		instance = std::make_shared<D2DXContext>(gameHelper, simd);
+		instance = std::make_shared<D2DXContext>(std::make_shared<SimdSse2>());
 	}
 
 	return instance.get();

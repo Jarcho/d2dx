@@ -18,7 +18,6 @@
 */
 #pragma once
 
-#include "IGameHelper.h"
 #include "Types.h"
 #include "D2Types.h"
 
@@ -28,17 +27,11 @@ namespace d2dx
 	{
 		virtual ~ID2InterceptionHandler() noexcept {}
 
-		virtual void BeginDrawText(
+		virtual void InterceptDrawText(
 			_Inout_z_ wchar_t* str) = 0;
 
-		virtual void EndDrawText() = 0;
-
-		virtual void BeginDrawImage(
-			_In_ const D2::CellContextAny* cellContext,
-			_In_ uint32_t drawMode,
-			_In_ Offset pos,
-			_In_ D2Function d2Function) = 0;
-
-		virtual void EndDrawImage() = 0;
+		virtual uint16_t SetSurface(
+			_In_ uint16_t surface) = 0;
+		virtual uint16_t SetNewSurface() = 0;
 	};
 }

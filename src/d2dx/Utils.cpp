@@ -252,7 +252,6 @@ void d2dx::DumpTexture(
     int32_t h,
     const uint8_t* pixels,
     uint32_t pixelsSize,
-    uint32_t textureCategory,
     const uint32_t* palette)
 {
     char s[256];
@@ -262,14 +261,7 @@ void d2dx::DumpTexture(
         std::filesystem::create_directory("dump");
     }
 
-    sprintf_s(s, "dump/%u", textureCategory);
-
-    if (!std::filesystem::exists(s))
-    {
-        std::filesystem::create_directory(s);
-    }
-
-    sprintf_s(s, "dump/%u/%016llx.bmp", textureCategory, hash);
+    sprintf_s(s, "dump/%016llx.bmp", hash);
 
     if (std::filesystem::exists(s))
     {

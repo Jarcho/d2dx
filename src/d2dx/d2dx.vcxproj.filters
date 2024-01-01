@@ -62,12 +62,10 @@
     <ClCompile Include="D2DXContextFactory.cpp" />
     <ClCompile Include="RenderContextResources.cpp" />
     <ClCompile Include="CompatModeCheck.cpp" />
-    <ClCompile Include="SurfaceIdTracker.cpp" />
     <ClCompile Include="Options.cpp" />
     <ClCompile Include="..\..\thirdparty\toml\toml.c">
       <Filter>thirdparty\toml</Filter>
     </ClCompile>
-    <ClCompile Include="WeatherMotionPredictor.cpp" />
     <ClCompile Include="TextureHasher.cpp" />
     <ClCompile Include="..\..\thirdparty\xxhash\xxhash.c">
       <Filter>thirdparty\xxhash</Filter>
@@ -135,7 +133,6 @@
     <ClInclude Include="Metrics.h" />
     <ClInclude Include="ITextureCache.h" />
     <ClInclude Include="IRenderContext.h" />
-    <ClInclude Include="IGameHelper.h" />
     <ClInclude Include="ID2DXContext.h" />
     <ClInclude Include="IGlide3x.h" />
     <ClInclude Include="D2DXContextFactory.h" />
@@ -145,14 +142,12 @@
     <ClInclude Include="..\..\thirdparty\stb_image\stb_image_write.h">
       <Filter>thirdparty\stb_image</Filter>
     </ClInclude>
-    <ClInclude Include="SurfaceIdTracker.h" />
     <ClInclude Include="ID2InterceptionHandler.h" />
     <ClInclude Include="D2Types.h" />
     <ClInclude Include="Options.h" />
     <ClInclude Include="..\..\thirdparty\toml\toml.h">
       <Filter>thirdparty\toml</Filter>
     </ClInclude>
-    <ClInclude Include="WeatherMotionPredictor.h" />
     <ClInclude Include="TextureHasher.h" />
     <ClInclude Include="..\..\thirdparty\pocketlzma\pocketlzma.hpp">
       <Filter>thirdparty\pocketlzma</Filter>

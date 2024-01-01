@@ -20,8 +20,8 @@
 #include "Detours.h"
 #include "Utils.h"
 #include "D2DXContextFactory.h"
+#include "GameHelper.h"
 #include "IWin32InterceptionHandler.h"
-#include "IGameHelper.h"
 #include "Profiler.h"
 
 using namespace d2dx;
@@ -29,12 +29,6 @@ using namespace d2dx;
 #pragma comment(lib, "../../thirdparty/detours/detours.lib")
 
 static bool hasDetoured = false;
-static bool hasDetachedDetours = false;
-static bool hasLateDetoured = false;
-static bool hasDetachedLateDetours = false;
-
-uint32_t currentlyDrawingWeatherParticles = 0;
-uint32_t* currentlyDrawingWeatherParticleIndexPtr = nullptr;
 
 static IWin32InterceptionHandler* GetWin32InterceptionHandler()
 {
@@ -219,270 +213,400 @@ int(
 		_In_ UINT format) = DrawTextA;
 
 
-typedef void(__stdcall* D2Gfx_DrawImageFunc)(D2::CellContextAny* pData, int nXpos, int nYpos, DWORD dwGamma, int nDrawMode, BYTE* pPalette);
-typedef void(__stdcall* D2Gfx_DrawShiftedImageFunc)(D2::CellContextAny* pData, int nXpos, int nYpos, DWORD dwGamma, int nDrawMode, int nGlobalPaletteShift);
-typedef void(__stdcall* D2Gfx_DrawVerticalCropImageFunc)(D2::CellContextAny* pData, int nXpos, int nYpos, int nSkipLines, int nDrawLines, int nDrawMode);
-typedef void(__stdcall* D2Gfx_DrawClippedImageFunc)(D2::CellContextAny* pData, int nXpos, int nYpos, void* pCropRect, int nDrawMode);
-typedef void(__stdcall* D2Gfx_DrawImageFastFunc)(D2::CellContextAny* pData, int nXpos, int nYpos, BYTE nPaletteIndex);
-typedef void(__fastcall* D2Win_DrawTextFunc)(const wchar_t* wStr, int xPos, int yPos, DWORD dwColor, DWORD centered);
-typedef void(__fastcall* D2Win_DrawTextExFunc)(const wchar_t* wStr, int xPos, int yPos, DWORD dwColor, DWORD centered, DWORD transparencyLevel);
-typedef void(__fastcall* D2Win_DrawRectangledTextFunc)(const wchar_t* wStr, int xPos, int yPos, DWORD rectColor, DWORD rectTransparency, DWORD color);
-typedef void* NakedFunc;
+typedef void(__cdecl* D2Client_DrawCursor)();
+typedef void(__fastcall* D2Client_DrawShadow)(void*);
+typedef void(__fastcall* D2Client_DrawUnit)(void*, int32_t, int32_t);
+typedef void(__fastcall* D2Client_DrawInvItem)(void*, int32_t, int32_t);
+typedef void(__fastcall* D2Client_DrawUnitOverlay)(void*, int32_t, int32_t, int32_t, int32_t, int32_t);
+typedef void(__stdcall* D2Client_DrawUnitOverlay_111)(void*, int32_t, int32_t, int32_t, int32_t, int32_t);
+typedef void(__stdcall* D2Gfx_DrawImage)(int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
+typedef void(__stdcall* D2Gfx_DrawFloor)(void*, void*, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t, int32_t);
+typedef BOOL(__stdcall* D2Gfx_DrawTile)(void*, int32_t, int32_t, int32_t, int32_t);
+typedef BOOL(__stdcall* D2Gfx_DrawTileAlpha)(void*, int32_t, int32_t, int32_t, int32_t, int32_t);
+typedef BOOL(__stdcall* D2Gfx_DrawTileShadow)(void*, int32_t, int32_t, int32_t, int32_t);
+typedef void(__cdecl* D2Win_DrawCursor)();
+typedef void(__fastcall* D2Win_DrawChar)(void*, int32_t);
+typedef void(__fastcall* D2Win_DrawText)(wchar_t*, int32_t, int32_t, int32_t, int32_t);
 
-D2Gfx_DrawImageFunc D2Gfx_DrawImage_Real = nullptr;
-D2Gfx_DrawShiftedImageFunc D2Gfx_DrawShiftedImage_Real = nullptr;
-D2Gfx_DrawVerticalCropImageFunc D2Gfx_DrawVerticalCropImage_Real = nullptr;
-D2Gfx_DrawClippedImageFunc D2Gfx_DrawClippedImage_Real = nullptr;
-D2Gfx_DrawImageFastFunc D2Gfx_DrawImageFast_Real = nullptr;
-D2Win_DrawTextFunc D2Win_DrawText_Real = nullptr;
-D2Win_DrawRectangledTextFunc D2Win_DrawRectangledText_Real = nullptr;
-NakedFunc D2Client_DrawWeatherParticles_Real = nullptr;
+D2Client_DrawCursor D2Client_DrawCursor_Real = nullptr;
+void* D2Client_DrawShadow_Real = nullptr;
+void* D2Client_DrawUnit_Real = nullptr;
+void* D2Client_DrawInvItem_Real = nullptr;
+void* D2Client_DrawUnitOverlay_Real = nullptr;
+D2Gfx_DrawImage D2Gfx_DrawImage_Real = nullptr;
+D2Gfx_DrawFloor D2Gfx_DrawFloor_Real = nullptr;
+D2Gfx_DrawTile D2Gfx_DrawTile_Real = nullptr;
+D2Gfx_DrawTileAlpha D2Gfx_DrawTileAlpha_Real = nullptr;
+D2Gfx_DrawTileShadow D2Gfx_DrawTileShadow_Real = nullptr;
+void* D2Win_DrawCursor_Real = nullptr;
+void* D2Win_DrawChar_Real = nullptr;
+D2Win_DrawText D2Win_DrawText_Real = nullptr;
 
-void __stdcall D2Gfx_DrawImage_Hooked(
-	D2::CellContextAny* cellContext,
-	int nXpos,
-	int nYpos,
-	DWORD dwGamma,
-	int nDrawMode,
-	BYTE * pPalette)
+void __cdecl D2Client_DrawCursor_Hooked()
 {
-	Timer _timer(ProfCategory::Detours);
 	auto d2InterceptionHandler = GetD2InterceptionHandler();
 	if (d2InterceptionHandler)
 	{
-		d2InterceptionHandler->BeginDrawImage(cellContext, nDrawMode, { nXpos, nYpos }, D2Function::D2Gfx_DrawImage);
-		D2Gfx_DrawImage_Real(cellContext, nXpos, nYpos, dwGamma, nDrawMode, pPalette);
-		d2InterceptionHandler->EndDrawImage();
+		uint16_t prev = d2InterceptionHandler->SetSurface(D2DX_SURFACE_CURSOR);
+		D2Client_DrawCursor_Real();
+		d2InterceptionHandler->SetSurface(prev);
 	}
 	else
 	{
-		D2Gfx_DrawImage_Real(cellContext, nXpos, nYpos, dwGamma, nDrawMode, pPalette);
+		D2Client_DrawCursor_Real();
 	}
 }
 
-void __stdcall D2Gfx_DrawClippedImage_Hooked(
-	D2::CellContextAny* cellContext,
-	int nXpos,
-	int nYpos,
-	void* pCropRect,
-	int nDrawMode)
+void __fastcall D2Client_DrawShadow_Hooked(void* unit)
 {
-	Timer _timer(ProfCategory::Detours);
 	auto d2InterceptionHandler = GetD2InterceptionHandler();
 	if (d2InterceptionHandler)
 	{
-		d2InterceptionHandler->BeginDrawImage(cellContext, (uint32_t)nDrawMode, { nXpos, nYpos }, D2Function::D2Gfx_DrawClippedImage);
-		D2Gfx_DrawClippedImage_Real(cellContext, nXpos, nYpos, pCropRect, nDrawMode);
-		d2InterceptionHandler->EndDrawImage();
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Client_DrawShadow)D2Client_DrawShadow_Real)(unit);
+		d2InterceptionHandler->SetSurface(prev);
 	}
 	else
 	{
-		D2Gfx_DrawClippedImage_Real(cellContext, nXpos, nYpos, pCropRect, nDrawMode);
+		((D2Client_DrawShadow)D2Client_DrawShadow_Real)(unit);
 	}
 }
 
-void __stdcall D2Gfx_DrawShiftedImage_Hooked(
-	D2::CellContextAny* cellContext,
-	int nXpos,
-	int nYpos,
-	DWORD dwGamma,
-	int nDrawMode,
-	int nGlobalPaletteShift)
+void __fastcall D2Client_DrawShadow111_Impl(void* _1)
 {
-	Timer _timer(ProfCategory::Detours);
 	auto d2InterceptionHandler = GetD2InterceptionHandler();
 	if (d2InterceptionHandler)
 	{
-		d2InterceptionHandler->BeginDrawImage(cellContext, (uint32_t)nDrawMode, { nXpos, nYpos }, D2Function::D2Gfx_DrawShiftedImage);
-		D2Gfx_DrawShiftedImage_Real(cellContext, nXpos, nYpos, dwGamma, nDrawMode, nGlobalPaletteShift);
-		d2InterceptionHandler->EndDrawImage();
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		__asm {
+			mov eax, _1;
+			call [D2Client_DrawShadow_Real]
+		}
+		d2InterceptionHandler->SetSurface(prev);
 	}
 	else
 	{
-		D2Gfx_DrawShiftedImage_Real(cellContext, nXpos, nYpos, dwGamma, nDrawMode, nGlobalPaletteShift);
+		__asm {
+			mov eax, _1;
+			call [D2Client_DrawShadow_Real]
+		}
 	}
 }
 
-void __stdcall D2Gfx_DrawVerticalCropImage_Hooked(
-	D2::CellContextAny* cellContext,
-	int nXpos,
-	int nYpos,
-	int nSkipLines,
-	int nDrawLines,
-	int nDrawMode)
+__declspec(naked) void D2Client_DrawShadow111_Hooked()
 {
-	Timer _timer(ProfCategory::Detours);
-	auto d2InterceptionHandler = GetD2InterceptionHandler();
-	if (d2InterceptionHandler)
-	{
-		d2InterceptionHandler->BeginDrawImage(cellContext, (uint32_t)nDrawMode, { nXpos, nYpos }, D2Function::D2Gfx_DrawVerticalCropImage);
-		D2Gfx_DrawVerticalCropImage_Real(cellContext, nXpos, nYpos, nSkipLines, nDrawLines, nDrawMode);
-		d2InterceptionHandler->EndDrawImage();
-	}
-	else
-	{
-		D2Gfx_DrawVerticalCropImage_Real(cellContext, nXpos, nYpos, nSkipLines, nDrawLines, nDrawMode);
-	}
-}
-
-void __stdcall D2Gfx_DrawImageFast_Hooked(
-	D2::CellContextAny* cellContext,
-	int nXpos,
-	int nYpos,
-	BYTE nPaletteIndex)
-{
-	Timer _timer(ProfCategory::Detours);
-	auto d2InterceptionHandler = GetD2InterceptionHandler();
-	if (d2InterceptionHandler)
-	{
-		d2InterceptionHandler->BeginDrawImage(cellContext, (uint32_t)-1, { nXpos, nYpos }, D2Function::D2Gfx_DrawImageFast);
-		D2Gfx_DrawImageFast_Real(cellContext, nXpos, nYpos, nPaletteIndex);
-		d2InterceptionHandler->EndDrawImage();
-	}
-	else
-	{
-		D2Gfx_DrawImageFast_Real(cellContext, nXpos, nYpos, nPaletteIndex);
-	}
-}
-
-void __fastcall D2Win_DrawText_Hooked(
-	wchar_t* wStr,
-	int xPos,
-	int yPos,
-	DWORD dwColor,
-	DWORD centered)
-{
-	Timer _timer(ProfCategory::Detours);
-	auto d2InterceptionHandler = GetD2InterceptionHandler();
-	if (d2InterceptionHandler)
-	{
-		d2InterceptionHandler->BeginDrawText(wStr);
-		D2Win_DrawText_Real(wStr, xPos, yPos, dwColor, centered);
-		d2InterceptionHandler->EndDrawText();
-	}
-	else
-	{
-		D2Win_DrawText_Real(wStr, xPos, yPos, dwColor, centered);
-	}
-}
-
-void __fastcall D2Win_DrawRectangledText_Hooked(
-	wchar_t* wStr,
-	int xPos,
-	int yPos,
-	DWORD rectColor,
-	DWORD rectTransparency,
-	DWORD color)
-{
-	Timer _timer(ProfCategory::Detours);
-	auto d2InterceptionHandler = GetD2InterceptionHandler();
-	if (d2InterceptionHandler)
-	{
-		d2InterceptionHandler->BeginDrawText(wStr);
-		D2Win_DrawRectangledText_Real(wStr, xPos, yPos, rectColor, rectTransparency, color);
-		d2InterceptionHandler->EndDrawText();
-	}
-	else
-	{
-		D2Win_DrawRectangledText_Real(wStr, xPos, yPos, rectColor, rectTransparency, color);
-	}
-}
-
-__declspec(naked) void D2Client_DrawWeatherParticles_Hooked()
-{
-	static void* origReturnAddr = nullptr;
-
-	__asm
-	{
-		push eax
-		push edx
-		lea edx, origReturnAddr
-		mov eax, dword ptr[esp + 0x08]
-		mov dword ptr[edx], eax
-		lea eax, patchReturnAddr
-		mov dword ptr[esp + 0x08], eax
-		mov eax, 1
-		lea edx, currentlyDrawingWeatherParticles
-		mov dword ptr[edx], eax
-		lea edx, currentlyDrawingWeatherParticleIndexPtr
-		mov eax, esp
-		add eax, 4
-		mov dword ptr[edx], eax
-		pop edx
-		pop eax
-	}
-
-	__asm jmp D2Client_DrawWeatherParticles_Real
-
-	patchReturnAddr :
-	__asm
-	{
-		push eax
-		push eax
-		push edx
-		lea edx, currentlyDrawingWeatherParticles
-		xor eax, eax
-		mov dword ptr[edx], eax
-		lea edx, origReturnAddr
-		mov eax, dword ptr[edx]
-		mov dword ptr[esp + 0x08], eax
-		pop edx
-		pop eax
+	__asm {
+		mov ecx, eax
+		call D2Client_DrawShadow111_Impl
 		ret
 	}
 }
 
-__declspec(naked) void D2Client_DrawWeatherParticles114d_Hooked()
+void __fastcall D2Client_DrawUnit_Hooked(void* unit, int32_t _1, int32_t _2)
 {
-	static void* origReturnAddr = nullptr;
-
-	__asm
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
 	{
-		push eax
-		push edx
-		lea edx, origReturnAddr
-		mov eax, dword ptr[esp + 0x08]
-		mov dword ptr[edx], eax
-		lea eax, patchReturnAddr
-		mov dword ptr[esp + 0x08], eax
-		mov eax, 1
-		lea edx, currentlyDrawingWeatherParticles
-		mov dword ptr[edx], eax
-		lea edx, currentlyDrawingWeatherParticleIndexPtr
-		mov eax, esp
-		sub eax, 10h
-		mov dword ptr[edx], eax
-		pop edx
-		pop eax
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Client_DrawUnit)D2Client_DrawUnit_Real)(unit, _1, _2);
+		d2InterceptionHandler->SetSurface(prev);
 	}
-
-	__asm jmp D2Client_DrawWeatherParticles_Real
-
-	patchReturnAddr :
-	__asm
+	else
 	{
-		push eax
-		push eax
-		push edx
-		lea edx, currentlyDrawingWeatherParticles
-		xor eax, eax
-		mov dword ptr[edx], eax
-		lea edx, origReturnAddr
-		mov eax, dword ptr[edx]
-		mov dword ptr[esp + 0x08], eax
-		pop edx
-		pop eax
-		ret
+		((D2Client_DrawUnit)D2Client_DrawUnit_Real)(unit, _1, _2);
 	}
 }
 
-void d2dx::AttachDetours()
+void __fastcall D2Client_DrawUnit111_Impl(int32_t _1, int32_t _2, int32_t _3)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		__asm {
+			mov ecx, _1
+			mov eax, _3
+			push _2
+			call [D2Client_DrawUnit_Real]
+		}
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		__asm {
+			mov ecx, _1
+			mov eax, _3
+			push _2
+			call [D2Client_DrawUnit_Real]
+		}
+	}
+}
+
+__declspec(naked) void __stdcall D2Client_DrawUnit111_Hooked(int32_t _1)
+{
+	__asm {
+		mov edx, [esp + 4]
+		push eax
+		call D2Client_DrawUnit111_Impl
+		ret 4
+	}
+}
+
+void __fastcall D2Client_DrawInvItem_Hooked(void* unit, int32_t _1, int32_t _2)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Client_DrawInvItem)D2Client_DrawInvItem_Real)(unit, _1, _2);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		((D2Client_DrawInvItem)D2Client_DrawInvItem_Real)(unit, _1, _2);
+	}
+}
+
+void __fastcall D2Client_DrawInvItem111_Impl(int32_t _1, int32_t _2, int32_t _3)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		__asm {
+			mov eax, _3;
+			push _2;
+			push _1;
+			call [D2Client_DrawInvItem_Real]
+		}
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		__asm {
+			mov eax, _3;
+			push _2;
+			push _1;
+			call [D2Client_DrawInvItem_Real]
+		}
+	}
+}
+
+__declspec(naked) void __stdcall D2Client_DrawInvItem111_Hooked(int32_t _1, int32_t _2)
+{
+	__asm {
+		mov ecx, [esp+4]
+		mov edx, [esp+8]
+		push eax
+		call D2Client_DrawInvItem111_Impl
+		ret 8
+	}
+}
+
+void __fastcall D2Client_DrawUnitOverlay_Hooked(void* unit, int32_t _1, int32_t _2, int32_t _3, int32_t _4, int32_t _5)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Client_DrawUnitOverlay)D2Client_DrawUnitOverlay_Real)(unit, _1, _2, _3, _4, _5);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		((D2Client_DrawUnitOverlay)D2Client_DrawUnitOverlay_Real)(unit, _1, _2, _3, _4, _5);
+	}
+}
+
+void __stdcall D2Client_DrawUnitOverlay111_Hooked(void* unit, int32_t _1, int32_t _2, int32_t _3, int32_t _4, int32_t _5)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Client_DrawUnitOverlay_111)D2Client_DrawUnitOverlay_Real)(unit, _1, _2, _3, _4, _5);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		((D2Client_DrawUnitOverlay_111)D2Client_DrawUnitOverlay_Real)(unit, _1, _2, _3, _4, _5);
+	}
+}
+
+void __stdcall D2Gfx_DrawFloor_Hooked(void* tile, void* _1, int32_t _2, int32_t _3, int32_t _4, int32_t _5, int32_t _6, int32_t _7, int32_t _8)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		D2Gfx_DrawFloor_Real(tile, _1, _2, _3, _4, _5, _6, _7, _8);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		D2Gfx_DrawFloor_Real(tile, _1, _2, _3, _4, _5, _6, _7, _8);
+	}
+}
+
+void __stdcall D2Gfx_DrawTile_Hooked(void* tile, int32_t _1, int32_t _2, int32_t _3, int32_t _4)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		D2Gfx_DrawTile_Real(tile, _1, _2, _3, _4);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		D2Gfx_DrawTile_Real(tile, _1, _2, _3, _4);
+	}
+}
+
+void __stdcall D2Gfx_DrawTileAlpha_Hooked(void* tile, int32_t _1, int32_t _2, int32_t _3, int32_t _4, int32_t _5)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		D2Gfx_DrawTileAlpha_Real(tile, _1, _2, _3, _4, _5);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		D2Gfx_DrawTileAlpha_Real(tile, _1, _2, _3, _4, _5);
+	}
+}
+
+void __stdcall D2Gfx_DrawTileShadow_Hooked(void* tile, int32_t _1, int32_t _2, int32_t _3, int32_t _4)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		D2Gfx_DrawTileShadow_Real(tile, _1, _2, _3, _4);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		D2Gfx_DrawTileShadow_Real(tile, _1, _2, _3, _4);
+	}
+}
+
+void __stdcall D2Win_DrawCursor_Impl(int32_t _1, int32_t _2, int32_t _3, int32_t _4, int32_t _5, int32_t _6)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetSurface(D2DX_SURFACE_CURSOR);
+		D2Gfx_DrawImage_Real(_1, _2, _3, _4, _5, _6);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		D2Gfx_DrawImage_Real(_1, _2, _3, _4, _5, _6);
+	}
+}
+
+static void* D2Win_DrawCursor_Ret = nullptr;
+__declspec(naked) void D2Win_DrawCursor_Hooked()
+{
+	__asm {
+		call D2Win_DrawCursor_Impl
+		mov eax, D2Win_DrawCursor_Ret
+		jmp eax
+	}
+}
+
+void __cdecl D2Win_DrawCursor111_Hooked()
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetSurface(D2DX_SURFACE_CURSOR);
+		((D2Win_DrawCursor)D2Win_DrawCursor_Real)();
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		((D2Win_DrawCursor)D2Win_DrawCursor_Real)();
+	}
+}
+
+void __fastcall D2Win_DrawChar_Hooked(void* _1, int32_t _2)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		((D2Win_DrawChar)D2Win_DrawChar_Real)(_1, _2);
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		((D2Win_DrawChar)D2Win_DrawChar_Real)(_1, _2);
+	}
+}
+
+void __fastcall D2Win_DrawChar111_Impl(int32_t _1, int32_t _2)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		uint16_t prev = d2InterceptionHandler->SetNewSurface();
+		__asm {
+			mov ebx, _1;
+			push _2;
+			call [D2Win_DrawChar_Real]
+		}
+		d2InterceptionHandler->SetSurface(prev);
+	}
+	else
+	{
+		__asm {
+			mov ebx, _1;
+			push _2;
+			call [D2Win_DrawChar_Real]
+		}
+	}
+}
+
+__declspec(naked) void __stdcall D2Win_DrawChar111_Hooked(int32_t _1)
+{
+	__asm {
+		mov ecx, ebx
+		mov edx, [esp+4]
+		call D2Win_DrawChar111_Impl
+		ret 4
+	}
+}
+
+void __fastcall D2Win_DrawText_Hooked(wchar_t* s, int32_t _1, int32_t _2, int32_t _3, int32_t _4)
+{
+	auto d2InterceptionHandler = GetD2InterceptionHandler();
+	if (d2InterceptionHandler)
+	{
+		d2InterceptionHandler->InterceptDrawText(s);
+	}
+	D2Win_DrawText_Real(s, _1, _2, _3, _4);
+}
+
+static void* DrawShadowHook = nullptr;
+static void* DrawUnitHook = nullptr;
+static void* DrawInvItemHook = nullptr;
+static void* DrawUnitOverlayHook = nullptr;
+static void* DrawMenuCursorHook = nullptr;
+static void* DrawMenuCharHook = nullptr;
+
+_Use_decl_annotations_
+void d2dx::AttachDetours(
+	GameHelper& gameHelper,
+	ID2DXContext& d2dxContext)
 {
 	if (hasDetoured)
 	{
 		return;
 	}
-
 	hasDetoured = true;
 
 	DetourTransactionBegin();
@@ -492,124 +616,196 @@ void d2dx::AttachDetours()
 	DetourAttach(&(PVOID&)SendMessageA_Real, SendMessageA_Hooked);
 	DetourAttach(&(PVOID&)ShowCursor_Real, ShowCursor_Hooked);
 	DetourAttach(&(PVOID&)SetCursorPos_Real, SetCursorPos_Hooked);
-	auto r = DetourAttach(&(PVOID&)SetWindowPos_Real, SetWindowPos_Hooked);
-
-	LONG lError = DetourTransactionCommit();
-
-	if (lError != NO_ERROR) {
-		D2DX_FATAL_ERROR("Failed to detour Win32 functions.");
-	}
-}
-
-_Use_decl_annotations_
-void d2dx::AttachLateDetours(
-	IGameHelper* gameHelper,
-	ID2DXContext* d2dxContext)
-{
-	if (hasLateDetoured)
-	{
-		return;
-	}
-
-	hasLateDetoured = true;
-
-	D2Gfx_DrawImage_Real = (D2Gfx_DrawImageFunc)gameHelper->GetFunction(D2Function::D2Gfx_DrawImage);
-	D2Gfx_DrawShiftedImage_Real = (D2Gfx_DrawShiftedImageFunc)gameHelper->GetFunction(D2Function::D2Gfx_DrawShiftedImage);
-	D2Gfx_DrawVerticalCropImage_Real = (D2Gfx_DrawVerticalCropImageFunc)gameHelper->GetFunction(D2Function::D2Gfx_DrawVerticalCropImage);
-	D2Gfx_DrawClippedImage_Real = (D2Gfx_DrawClippedImageFunc)gameHelper->GetFunction(D2Function::D2Gfx_DrawClippedImage);
-	D2Gfx_DrawImageFast_Real = (D2Gfx_DrawImageFastFunc)gameHelper->GetFunction(D2Function::D2Gfx_DrawImageFast);
-	D2Win_DrawText_Real = (D2Win_DrawTextFunc)gameHelper->GetFunction(D2Function::D2Win_DrawText);
-	//D2Win_DrawTextEx_Real = (D2Win_DrawTextExFunc)gameHelper->GetFunction(D2Function::D2Win_DrawTextEx);
-	D2Win_DrawRectangledText_Real = (D2Win_DrawRectangledTextFunc)gameHelper->GetFunction(D2Function::D2Win_DrawRectangledText);
-	D2Client_DrawWeatherParticles_Real = (NakedFunc)gameHelper->GetFunction(D2Function::D2Client_DrawWeatherParticles);
-
-	if (!D2Gfx_DrawImage_Real ||
-		!D2Gfx_DrawShiftedImage_Real ||
-		!D2Gfx_DrawVerticalCropImage_Real ||
-		!D2Gfx_DrawClippedImage_Real ||
-		!D2Gfx_DrawImageFast_Real ||
-		!D2Win_DrawText_Real ||
-		!D2Win_DrawRectangledText_Real ||
-		!D2Client_DrawWeatherParticles_Real)
-	{
-		return;
-	}
-
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
+	DetourAttach(&(PVOID&)SetWindowPos_Real, SetWindowPos_Hooked);
 #ifdef D2DX_PROFILE
 	DetourAttach(&(PVOID&)SleepEx_Real, SleepEx_Hooked);
 #endif
-	DetourAttach(&(PVOID&)D2Gfx_DrawImage_Real, D2Gfx_DrawImage_Hooked);
-	DetourAttach(&(PVOID&)D2Gfx_DrawShiftedImage_Real, D2Gfx_DrawShiftedImage_Hooked);
-	DetourAttach(&(PVOID&)D2Gfx_DrawVerticalCropImage_Real, D2Gfx_DrawVerticalCropImage_Hooked);
-	DetourAttach(&(PVOID&)D2Gfx_DrawClippedImage_Real, D2Gfx_DrawClippedImage_Hooked);
-	DetourAttach(&(PVOID&)D2Gfx_DrawImageFast_Real, D2Gfx_DrawImageFast_Hooked);
-	DetourAttach(&(PVOID&)D2Win_DrawText_Real, D2Win_DrawText_Hooked);
-	DetourAttach(&(PVOID&)D2Win_DrawRectangledText_Real, D2Win_DrawRectangledText_Hooked);
-	//DetourAttach(&(PVOID&)D2Win_DrawTextEx_Real, D2Win_DrawTextEx_Hooked);
-
-	if (!d2dxContext->GetOptions().GetFlag(OptionsFlag::NoFpsMod))
-	{
-		DetourAttach(&(PVOID&)D2Client_DrawWeatherParticles_Real,
-			gameHelper->GetVersion() == GameVersion::Lod114d ? D2Client_DrawWeatherParticles114d_Hooked : D2Client_DrawWeatherParticles_Hooked);
+	LONG lError = DetourTransactionCommit();
+	if (lError != NO_ERROR) {
+		D2DX_FATAL_ERROR("Failed to detour Win32 functions.");
 	}
 
-	LONG lError = DetourTransactionCommit();
+	if (!d2dxContext.GetOptions().GetFlag(OptionsFlag::NoAntiAliasing))
+	{
+		switch (gameHelper.gameVersion)
+		{
+		case GameVersion::Lod109d:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0xb58f0);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0xb71e0;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xab9b0;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0xb7f60;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0xb80e0;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10072));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10079));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10080));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10081));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10082));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xf4cb;
+			D2Win_DrawCursor_Ret = (char*)gameHelper.d2WinDll + 0xf4d0;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0x1830;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10117));
 
-	if (lError != NO_ERROR) {
-		D2DX_LOG("Failed to detour D2Gfx functions: %i.", lError);
-		D2DX_FATAL_ERROR("Failed to detour D2Gfx functions");
+			DrawShadowHook = &D2Client_DrawShadow_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar_Hooked;
+			break;
+
+		case GameVersion::Lod110f:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0xb7ac0);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0xb9670;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xadb40;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0xba320;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0xba490;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10072));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10079));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10080));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10081));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10082));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xd92b;
+			D2Win_DrawCursor_Ret = (char*)gameHelper.d2WinDll + 0xd930;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0x1890;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10117));
+
+			DrawShadowHook = &D2Client_DrawShadow_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar_Hooked;
+			break;
+
+		case GameVersion::Lod112:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0x9f5b0);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0x93860;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xbba30;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0x93380;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0x92cc0;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10024));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10038));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10014));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10075));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10042));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xcd80;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0x16140;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10001));
+
+			DrawShadowHook = &D2Client_DrawShadow111_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit111_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem111_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay111_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor111_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar111_Hooked;
+			break;
+
+		case GameVersion::Lod113c:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0x16a90);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0x6ba90;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0x666d0;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0x6b5a0;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0x6aee0;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10041));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10076));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10001));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10058));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10069));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0x17f40;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0xe5f0;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10150));
+
+			DrawShadowHook = &D2Client_DrawShadow111_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit111_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem111_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay111_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor111_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar111_Hooked;
+			break;
+
+		case GameVersion::Lod113d:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0x14f10);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0x5f970;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xb4b50;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0x5f480;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0x5edc0;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10042));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10001));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10081));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10040));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10060));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xe0c0;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0xbfe0;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10076));
+
+			DrawShadowHook = &D2Client_DrawShadow111_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem111_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay111_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor111_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar111_Hooked;
+			break;
+
+		case GameVersion::Lod114d:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.gameExe + 0x684c0);
+			D2Client_DrawShadow_Real = (char*)gameHelper.gameExe + 0x71620;
+			D2Client_DrawUnit_Real = (char*)gameHelper.gameExe + 0xdc7b0;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.gameExe + 0x6ee80;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.gameExe + 0x6e300;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)((char*)gameHelper.gameExe + 0xf6480);
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)((char*)gameHelper.gameExe + 0xf68e0);
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)((char*)gameHelper.gameExe + 0xf6920);
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)((char*)gameHelper.gameExe + 0xf6950);
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)((char*)gameHelper.gameExe + 0xf6980);
+			D2Win_DrawCursor_Real = (char*)gameHelper.gameExe + 0xf97e0;
+			D2Win_DrawChar_Real = (char*)gameHelper.gameExe + 0x103ba0;
+			D2Win_DrawText_Real = (D2Win_DrawText)((char*)gameHelper.gameExe + 0x102320);
+			
+			DrawShadowHook = &D2Client_DrawShadow_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay111_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor111_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar_Hooked;
+			break;
+
+		default:
+			D2DX_LOG("Unsupported game version for anti-aliasing.");
+			d2dxContext.GetOptions().SetFlag(OptionsFlag::NoAntiAliasing, true);
+			return;
+		}
+
+		DetourTransactionBegin();
+		DetourUpdateThread(GetCurrentThread());
+		DetourAttach((void**)&D2Client_DrawCursor_Real, D2Client_DrawCursor_Hooked);
+		DetourAttach(&D2Client_DrawShadow_Real, DrawShadowHook);
+		DetourAttach(&D2Client_DrawUnit_Real, DrawUnitHook);
+		DetourAttach(&D2Client_DrawInvItem_Real, DrawInvItemHook);
+		DetourAttach(&D2Client_DrawUnitOverlay_Real, DrawUnitOverlayHook);
+		DetourAttach((void**)&D2Gfx_DrawFloor_Real, D2Gfx_DrawFloor_Hooked);
+		DetourAttach((void**)&D2Gfx_DrawTile_Real, D2Gfx_DrawTile_Hooked);
+		DetourAttach((void**)&D2Gfx_DrawTileAlpha_Real, D2Gfx_DrawTileAlpha_Hooked);
+		DetourAttach((void**)&D2Gfx_DrawTileShadow_Real, D2Gfx_DrawTileShadow_Hooked);
+		DetourAttach((void**)&D2Win_DrawCursor_Real, DrawMenuCursorHook);
+		DetourAttach(&D2Win_DrawChar_Real, DrawMenuCharHook);
+		DetourAttach((void**)&D2Win_DrawText_Real, D2Win_DrawText_Hooked);
+		LONG lError = DetourTransactionCommit();
+		if (lError != NO_ERROR) {
+			D2DX_LOG("Failed to detour anti-aliasing functions: %i.", lError);
+			d2dxContext.GetOptions().SetFlag(OptionsFlag::NoAntiAliasing, true);
+		}
 	}
 }
 
 _Use_decl_annotations_
-void d2dx::DetachLateDetours(
-	IGameHelper* gameHelper,
-	ID2DXContext* d2dxContext)
+void d2dx::DetachDetours(
+	GameHelper& gameHelper,
+	ID2DXContext& d2dxContext)
 {
-	if (!hasLateDetoured || hasDetachedLateDetours)
+	if (!hasDetoured)
 	{
 		return;
 	}
-
-	hasDetachedLateDetours = true;
-	
-	DetourTransactionBegin();
-	DetourUpdateThread(GetCurrentThread());
-
-	DetourDetach(&(PVOID&)D2Gfx_DrawImage_Real, D2Gfx_DrawImage_Hooked);
-	DetourDetach(&(PVOID&)D2Gfx_DrawShiftedImage_Real, D2Gfx_DrawShiftedImage_Hooked);
-	DetourDetach(&(PVOID&)D2Gfx_DrawVerticalCropImage_Real, D2Gfx_DrawVerticalCropImage_Hooked);
-	DetourDetach(&(PVOID&)D2Gfx_DrawClippedImage_Real, D2Gfx_DrawClippedImage_Hooked);
-	DetourDetach(&(PVOID&)D2Gfx_DrawImageFast_Real, D2Gfx_DrawImageFast_Hooked);
-	DetourDetach(&(PVOID&)D2Win_DrawText_Real, D2Win_DrawText_Hooked);
-	DetourDetach(&(PVOID&)D2Win_DrawRectangledText_Real, D2Win_DrawRectangledText_Hooked);
-#ifdef D2DX_PROFILE
-	DetourDetach(&(PVOID&)SleepEx_Real, SleepEx_Hooked);
-#endif
-
-	if (!d2dxContext->GetOptions().GetFlag(OptionsFlag::NoFpsMod))
-	{
-		DetourDetach(&(PVOID&)D2Client_DrawWeatherParticles_Real,
-			gameHelper->GetVersion() == GameVersion::Lod114d ? D2Client_DrawWeatherParticles114d_Hooked : D2Client_DrawWeatherParticles_Hooked);
-	}
-
-	LONG lError = DetourTransactionCommit();
-
-	if (lError != NO_ERROR) {
-		/* An error here doesn't really matter. The process is going. */
-	}
-}
-
-void d2dx::DetachDetours()
-{ 
-	if (!hasDetoured || hasDetachedDetours)
-	{
-		return;
-	}
-
-	hasDetachedDetours = true;
 
 	DetourTransactionBegin();
 	DetourUpdateThread(GetCurrentThread());
@@ -619,10 +815,35 @@ void d2dx::DetachDetours()
 	DetourDetach(&(PVOID&)ShowCursor_Real, ShowCursor_Hooked);
 	DetourDetach(&(PVOID&)SetCursorPos_Real, SetCursorPos_Hooked);
 	DetourDetach(&(PVOID&)SetWindowPos_Real, SetWindowPos_Hooked);
+#ifdef D2DX_PROFILE
+	DetourDetach(&(PVOID&)SleepEx_Real, SleepEx_Hooked);
+#endif
 
 	LONG lError = DetourTransactionCommit();
 
-	if (lError != NO_ERROR) {
+	if (lError != NO_ERROR)
+	{
 		/* An error here doesn't really matter. The process is going. */
+		return;
+	}
+	hasDetoured = false;
+
+	if (!d2dxContext.GetOptions().GetFlag(OptionsFlag::NoAntiAliasing))
+	{
+		DetourTransactionBegin();
+		DetourUpdateThread(GetCurrentThread());
+		DetourDetach((void**)&D2Client_DrawCursor_Real, D2Client_DrawCursor_Hooked);
+		DetourDetach(&D2Client_DrawShadow_Real, DrawShadowHook);
+		DetourDetach(&D2Client_DrawUnit_Real, DrawUnitHook);
+		DetourDetach(&D2Client_DrawInvItem_Real, DrawInvItemHook);
+		DetourDetach(&D2Client_DrawUnitOverlay_Real, DrawUnitOverlayHook);
+		DetourDetach((void**)&D2Gfx_DrawFloor_Real, D2Gfx_DrawFloor_Hooked);
+		DetourDetach((void**)&D2Gfx_DrawTile_Real, D2Gfx_DrawTile_Hooked);
+		DetourDetach((void**)&D2Gfx_DrawTileAlpha_Real, D2Gfx_DrawTileAlpha_Hooked);
+		DetourDetach((void**)&D2Gfx_DrawTileShadow_Real, D2Gfx_DrawTileShadow_Hooked);
+		DetourDetach((void**)&D2Win_DrawCursor_Real, DrawMenuCursorHook);
+		DetourDetach(&D2Win_DrawChar_Real, DrawMenuCharHook);
+		DetourDetach((void**)&D2Win_DrawText_Real, D2Win_DrawText_Hooked);
+		DetourTransactionCommit();
 	}
 }

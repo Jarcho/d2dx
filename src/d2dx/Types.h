@@ -29,7 +29,9 @@
 #define D2DX_LOGO_PALETTE_INDEX 15
 #define D2DX_MAX_PALETTES 16
 
-#define D2DX_SURFACE_ID_USER_INTERFACE 16383
+#define D2DX_SURFACE_UI 0
+#define D2DX_SURFACE_CURSOR 1
+#define D2DX_SURFACE_FIRST 2
 
 namespace d2dx
 {
@@ -45,9 +47,8 @@ namespace d2dx
 	{
 		Unknown = 0,
 		FmvIntro = 1,
-		Menus = 2,
-		InGame = 3,
-		TitleScreen = 4,
+		TitleScreen = 2,
+		Other = 3,
 	};
 
 	enum class PrimitiveType
@@ -81,18 +82,6 @@ namespace d2dx
 		Count = 2
 	};
 
-	enum class TextureCategory
-	{
-		Unknown = 0,
-		MousePointer = 1,
-		LoadingScreen = 2,
-		Floor = 3,
-		TitleScreen = 4,
-		Wall = 5,
-		UserInterface = 6,
-		Count = 7
-	};
-
 	enum class GameVersion
 	{
 		Unsupported = 0,
@@ -102,19 +91,6 @@ namespace d2dx
 		Lod113c = 4,
 		Lod113d = 5,
 		Lod114d = 6,
-	};
-
-	enum class GameAddress
-	{
-		Unknown = 0,
-		DrawWall1 = 1,
-		DrawWall2 = 2,
-		DrawFloor = 3,
-		DrawShadow = 4,
-		DrawDynamic = 5,
-		DrawSomething1 = 6,
-		DrawLine = 7,
-		Count = 8,
 	};
 
 	template<class T>

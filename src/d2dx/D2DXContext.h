@@ -21,14 +21,12 @@
 #include "Batch.h"
 #include "Buffer.h"
 #include "BuiltinMods.h"
+#include "GameHelper.h"
 #include "ID2DXContext.h"
-#include "IGameHelper.h"
 #include "IGlide3x.h"
 #include "IRenderContext.h"
 #include "IWin32InterceptionHandler.h"
-#include "SurfaceIdTracker.h"
 #include "TextureHasher.h"
-#include "WeatherMotionPredictor.h"
 #include "Vertex.h"
 
 namespace d2dx
@@ -40,7 +38,6 @@ namespace d2dx
 	{
 	public:
 		D2DXContext(
-			_In_ const std::shared_ptr<IGameHelper>& gameHelper,
 			_In_ const std::shared_ptr<ISimd>& simd);
 		
 		virtual ~D2DXContext() noexcept;
@@ -148,8 +145,6 @@ namespace d2dx
 		
 		virtual void OnBufferSwap();
 
-		virtual void OnBufferClear();
-
 		virtual void OnTexFilterMode(
 			_In_ GrChipID_t tmu,
 			_In_ GrTextureFilterMode_t filterMode);
@@ -163,20 +158,14 @@ namespace d2dx
 		
 		virtual Size GetSuggestedCustomResolution() override;
 
-		virtual GameVersion GetGameVersion() const override;
-
 		virtual void DisableBuiltinResMod() override;
 
 		virtual const Options& GetOptions() const override;
+		virtual Options& GetOptions() override;
 
 		virtual uint32_t GetActiveThreadId() const noexcept override
 		{
 			return _threadId;
-		}
-
-		virtual bool InGame() const noexcept override
-		{
-			return _majorGameState == MajorGameState::InGame;
 		}
 
 #pragma endregion ID2DXContext
@@ -193,18 +182,23 @@ namespace d2dx
 
 #pragma region ID2InterceptionHandler
 
-		virtual void BeginDrawText(
+		virtual void InterceptDrawText(
 			_Inout_z_ wchar_t* str) override;
 
-		virtual void EndDrawText() override;
+		virtual uint16_t SetSurface(
+			_In_ uint16_t id) override
+		{
+			uint16_t prev = _scratchBatch.GetSurfaceId();
+			_scratchBatch.SetSurfaceId(id);
+			return prev;
+		}
 
-		virtual void BeginDrawImage(
-			_In_ const D2::CellContextAny* cellContext,
-			_In_ uint32_t drawMode,
-			_In_ Offset pos,
-			_In_ D2Function d2Function) override;
-
-		virtual void EndDrawImage() override;
+		virtual uint16_t SetNewSurface() override
+		{
+			uint16_t prev = _scratchBatch.GetSurfaceId();
+			_scratchBatch.SetSurfaceId(_nextSurface++);
+			return prev;
+		}
 
 #pragma endregion ID2InterceptionHandler
 
@@ -225,6 +219,9 @@ namespace d2dx
 			_In_ uint32_t gameContext) const;
 		
 		void EnsureReadVertexStateUpdated(
+			_In_ const Batch& batch);
+
+		void FillVertexSurfaceId(
 			_In_ const Batch& batch);
 
 		struct GlideState
@@ -250,15 +247,14 @@ namespace d2dx
 		ReadVertexState _readVertexState;
 
 		Batch _scratchBatch;
+		uint16_t _nextSurface = D2DX_SURFACE_FIRST;
 
 		int32_t _frame;
 		std::shared_ptr<IRenderContext> _renderContext;
-		std::shared_ptr<IGameHelper> _gameHelper;
 		std::shared_ptr<ISimd> _simd;
+		GameHelper _gameHelper;
 		BuiltinMods _builtinMods;
 		TextureHasher _textureHasher;
-		WeatherMotionPredictor _weatherMotionPredictor;
-		SurfaceIdTracker _surfaceIdTracker;
 
 		MajorGameState _majorGameState;
 		ScreenMode _initialScreenMode;
@@ -281,10 +277,7 @@ namespace d2dx
 
 		Size _gameSize;
 
-		bool _isDrawingText = false;
 		Offset _playerScreenPos = { 0,0 };
-
-		uint32_t _lastWeatherParticleIndex = 0xFFFFFFFF;
 
 		OffsetF _avgDir = { 0.0f, 0.0f };
 

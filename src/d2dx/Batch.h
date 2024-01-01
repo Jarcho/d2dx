@@ -32,70 +32,58 @@ namespace d2dx
 			_textureHash(0),
 			_textureHeight_textureWidth_alphaBlend(0),
 			_vertexCount(0),
-			_isChromaKeyEnabled_gameAddress_paletteIndex(0),
-			_textureCategory_primitiveType_combiners(0),
+			_isChromaKeyEnabled_textureAtlas_paletteIndex(0),
+			_filterMode_primitiveType_combiners(0),
 			_startVertexLow(0),
-			_textureAtlas_filterMode(0)
+			_surfaceId(D2DX_SURFACE_UI)
 		{
-		}
-
-		inline GameAddress GetGameAddress() const noexcept
-		{
-			return (GameAddress)((_isChromaKeyEnabled_gameAddress_paletteIndex & 0x70) >> 4);
-		}
-
-		inline void SetGameAddress(GameAddress gameAddress) noexcept
-		{
-			assert((int32_t)gameAddress < 8);
-			_isChromaKeyEnabled_gameAddress_paletteIndex &= ~0x70;
-			_isChromaKeyEnabled_gameAddress_paletteIndex |= (uint8_t)((uint32_t)gameAddress << 4) & 0x70;
 		}
 
 		inline int32_t GetPaletteIndex() const noexcept
 		{
-			return _isChromaKeyEnabled_gameAddress_paletteIndex & 0xF;
+			return _isChromaKeyEnabled_textureAtlas_paletteIndex & 0xF;
 		}
 
 		inline void SetPaletteIndex(int32_t paletteIndex) noexcept
 		{
 			assert(paletteIndex >= 0 && paletteIndex < 16);
-			_isChromaKeyEnabled_gameAddress_paletteIndex &= 0xF0;
-			_isChromaKeyEnabled_gameAddress_paletteIndex |= paletteIndex;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0xF0;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= paletteIndex;
 		}
 
 		inline bool IsChromaKeyEnabled() const noexcept
 		{
-			return (_isChromaKeyEnabled_gameAddress_paletteIndex & 0x80) != 0;
+			return (_isChromaKeyEnabled_textureAtlas_paletteIndex & 0x80) != 0;
 		}
 
 		inline void SetIsChromaKeyEnabled(bool enable) noexcept
 		{
-			_isChromaKeyEnabled_gameAddress_paletteIndex &= 0x7F;
-			_isChromaKeyEnabled_gameAddress_paletteIndex |= enable ? 0x80 : 0;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0x7F;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= enable ? 0x80 : 0;
 		}
 
 		inline RgbCombine GetRgbCombine() const noexcept
 		{
-			return (RgbCombine)(_textureCategory_primitiveType_combiners & 0x01);
+			return (RgbCombine)(_filterMode_primitiveType_combiners & 0x01);
 		}
 
 		inline void SetRgbCombine(RgbCombine rgbCombine) noexcept
 		{
 			assert((int32_t)rgbCombine >= 0 && (int32_t)rgbCombine < 2);
-			_textureCategory_primitiveType_combiners &= ~0x01;
-			_textureCategory_primitiveType_combiners |= (uint8_t)rgbCombine & 0x01;
+			_filterMode_primitiveType_combiners &= ~0x01;
+			_filterMode_primitiveType_combiners |= (uint8_t)rgbCombine & 0x01;
 		}
 
 		inline AlphaCombine GetAlphaCombine() const noexcept
 		{
-			return (AlphaCombine)((_textureCategory_primitiveType_combiners >> 1) & 0x01);
+			return (AlphaCombine)((_filterMode_primitiveType_combiners >> 1) & 0x01);
 		}
 
 		inline void SetAlphaCombine(AlphaCombine alphaCombine) noexcept
 		{
 			assert((int32_t)alphaCombine >= 0 && (int32_t)alphaCombine < 2);
-			_textureCategory_primitiveType_combiners &= ~0x02;
-			_textureCategory_primitiveType_combiners |= ((uint8_t)alphaCombine << 1) & 0x02;
+			_filterMode_primitiveType_combiners &= ~0x02;
+			_filterMode_primitiveType_combiners |= ((uint8_t)alphaCombine << 1) & 0x02;
 		}
 
 		inline int32_t GetTextureWidth() const noexcept
@@ -182,14 +170,14 @@ namespace d2dx
 
 		inline uint32_t GetTextureAtlas() const noexcept
 		{
-			return (uint32_t)(_textureAtlas_filterMode & 7);
+			return (uint32_t)((_isChromaKeyEnabled_textureAtlas_paletteIndex >> 4) & 0b111);
 		}
 
 		inline void SetTextureAtlas(uint32_t textureAtlas) noexcept
 		{
 			assert(textureAtlas < 8);
-			_textureAtlas_filterMode &= ~7;
-			_textureAtlas_filterMode |= textureAtlas & 7;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0b10001111;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= (textureAtlas & 0b111) << 4;
 		}
 
 		inline uint32_t GetTextureIndex() const noexcept
@@ -202,18 +190,6 @@ namespace d2dx
 			assert(textureIndex < 4096);
 			_startVertexHigh_textureIndex &= ~0x0FFF;
 			_startVertexHigh_textureIndex |= (uint16_t)(textureIndex & 0x0FFF);
-		}
-
-		inline TextureCategory GetTextureCategory() const noexcept
-		{
-			return (TextureCategory)(_textureCategory_primitiveType_combiners >> 5U);
-		}
-
-		inline void SetTextureCategory(TextureCategory category) noexcept
-		{
-			assert((uint32_t)category < 8);
-			_textureCategory_primitiveType_combiners &= ~0xE0;
-			_textureCategory_primitiveType_combiners |= ((uint32_t)category << 5U) & 0xE0;
 		}
 
 		inline int32_t GetTextureStartAddress() const noexcept
@@ -235,14 +211,26 @@ namespace d2dx
 			_textureStartAddress = startAddress & 0xFFFF;
 		}
 
-		inline void SetFilterMode(GrTextureFilterMode_t mode) noexcept {
+		inline void SetFilterMode(GrTextureFilterMode_t mode) noexcept
+		{
 			assert(mode == 0 || mode == 1);
-			_textureAtlas_filterMode &= ~128;
-			_textureAtlas_filterMode |= mode << 7;
+			_filterMode_primitiveType_combiners &= ~0b11101111;
+			_filterMode_primitiveType_combiners |= (mode & 1) << 4;
 		}
 
-		inline GrTextureFilterMode_t GetFilterMode() const noexcept {
-			return _textureAtlas_filterMode >> 7;
+		inline GrTextureFilterMode_t GetFilterMode() const noexcept
+		{
+			return _filterMode_primitiveType_combiners >> 4;
+		}
+
+		void SetSurfaceId(int16_t id) noexcept
+		{
+			_surfaceId = id;
+		}
+
+		int16_t GetSurfaceId() const noexcept
+		{
+			return _surfaceId;
 		}
 
 		inline bool IsValid() const noexcept
@@ -252,14 +240,14 @@ namespace d2dx
 
 	private:
 		uint64_t _textureHash;
+		uint16_t _surfaceId;
 		uint16_t _startVertexLow;
 		uint16_t _vertexCount;
 		uint16_t _textureStartAddress;							// byte address / D2DX_TMU_ADDRESS_ALIGNMENT
 		uint16_t _startVertexHigh_textureIndex;					// VVVVAAAA AAAAAAAA
 		uint8_t _textureHeight_textureWidth_alphaBlend;			// HHHWWWBB
-		uint8_t _isChromaKeyEnabled_gameAddress_paletteIndex;	// CGGGPPPP
-		uint8_t _textureCategory_primitiveType_combiners;		// TTT.PPCC
-		uint8_t _textureAtlas_filterMode;						// M....AAA
+		uint8_t _isChromaKeyEnabled_textureAtlas_paletteIndex;	// CAAAPPPP
+		uint8_t _filterMode_primitiveType_combiners;			// ...MPPCC
 	};
 
 	static_assert(sizeof(Batch) == 24, "sizeof(Batch)");

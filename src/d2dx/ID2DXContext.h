@@ -37,14 +37,11 @@ namespace d2dx
 
 		virtual Size GetSuggestedCustomResolution() = 0;
 
-		virtual GameVersion GetGameVersion() const = 0;
-
 		virtual void DisableBuiltinResMod() = 0;
 
 		virtual const Options& GetOptions() const = 0;
+		virtual Options& GetOptions() = 0;
 
 		virtual uint32_t GetActiveThreadId() const noexcept = 0;
-
-		virtual bool InGame() const noexcept = 0;
 	};
 }

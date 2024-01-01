@@ -52,9 +52,7 @@ static Options GetCommandLineOptions()
 
 _Use_decl_annotations_
 D2DXContext::D2DXContext(
-	const std::shared_ptr<IGameHelper>& gameHelper,
 	const std::shared_ptr<ISimd>& simd) :
-	_gameHelper{ gameHelper },
 	_simd{ simd },
 	_frame(0),
 	_majorGameState(MajorGameState::Unknown),
@@ -67,8 +65,6 @@ D2DXContext::D2DXContext(
 	_suggestedGameSize{ 0, 0 },
 	_options{ GetCommandLineOptions() },
 	_lastScreenOpenMode{ 0 },
-	_surfaceIdTracker{ gameHelper },
-	_weatherMotionPredictor{ gameHelper },
 	_initialScreenMode(strstr(GetCommandLineA(), "-w") ? ScreenMode::Windowed : ScreenMode::FullscreenDefault)
 {
 	_threadId = GetCurrentThreadId();
@@ -112,11 +108,13 @@ D2DXContext::D2DXContext(
 	_options.SetFlag(OptionsFlag::NoResMod, true);
 	_options.SetFlag(OptionsFlag::NoFpsMod, true);
 #endif
+
+	AttachDetours(_gameHelper, *this);
 }
 
 D2DXContext::~D2DXContext() noexcept
 {
-	DetachLateDetours(_gameHelper.get(), this);
+	DetachDetours(_gameHelper, *this);
 }
 
 _Use_decl_annotations_
@@ -187,7 +185,7 @@ void D2DXContext::OnSstWinOpen(
 {
 	_threadId = GetCurrentThreadId();
 
-	Size windowSize = _gameHelper->GetConfiguredGameSize();
+	Size windowSize = _gameHelper.GetConfiguredGameSize();
 	if (!_options.GetFlag(OptionsFlag::NoResMod))
 	{
 		windowSize = { 800,600 };
@@ -313,14 +311,9 @@ void D2DXContext::OnTexSource(
 	_scratchBatch.SetTextureHash(hash);
 	_scratchBatch.SetTextureSize(width, height);
 
-	if (_scratchBatch.GetTextureCategory() == TextureCategory::Unknown)
-	{
-		_scratchBatch.SetTextureCategory(_gameHelper->GetTextureCategoryFromHash(hash));
-	}
-
 	if (_options.GetFlag(OptionsFlag::DbgDumpTextures))
 	{
-		DumpTexture(hash, width, height, pixels, pixelsSize, (uint32_t)_scratchBatch.GetTextureCategory(), _glideState.palettes.items + _scratchBatch.GetPaletteIndex() * 256);
+		DumpTexture(hash, width, height, pixels, pixelsSize, _glideState.palettes.items + _scratchBatch.GetPaletteIndex() * 256);
 	}
 }
 
@@ -344,25 +337,17 @@ void D2DXContext::CheckMajorGameState()
 		return;
 	}
 
-	_majorGameState = MajorGameState::Menus;
+	_majorGameState = MajorGameState::Other;
 
-	if (_gameHelper->IsInGame())
+	for (int32_t i = 0; i < batchCount; ++i)
 	{
-		_majorGameState = MajorGameState::InGame;
-		AttachLateDetours(_gameHelper.get(), this);
-	}
-	else
-	{
-		for (int32_t i = 0; i < batchCount; ++i)
+		const Batch& batch = _batches.items[i];
+		const float y0 = _vertices.items[batch.GetStartVertex()].GetY();
+
+		if (batch.GetHash() == 0x84ab94c374c42d9a && y0 >= 550.0f)
 		{
-			const Batch& batch = _batches.items[i];
-			const float y0 = _vertices.items[batch.GetStartVertex()].GetY();
-
-			if (batch.GetHash() == 0x84ab94c374c42d9a && y0 >= 550.0f)
-			{
-				_majorGameState = MajorGameState::TitleScreen;
-				break;
-			}
+			_majorGameState = MajorGameState::TitleScreen;
+			break;
 		}
 	}
 }
@@ -439,10 +424,7 @@ void D2DXContext::OnBufferSwap()
 
 	_batchCount = 0;
 	_vertexCount = 0;
-
-	_lastScreenOpenMode = _gameHelper->ScreenOpenMode();
-
-	_surfaceIdTracker.OnNewFrame();
+	_nextSurface = D2DX_SURFACE_FIRST;
 
 	_renderContext->GetCurrentMetrics(&_gameSize, nullptr, nullptr);
 
@@ -545,7 +527,6 @@ void D2DXContext::OnDrawPoint(
 {
 	Timer _timer(ProfCategory::Draw);
 	Batch batch = _scratchBatch;
-	batch.SetGameAddress(GameAddress::Unknown);
 	batch.SetStartVertex(_vertexCount);
 
 	EnsureReadVertexStateUpdated(batch);
@@ -561,7 +542,6 @@ void D2DXContext::OnDrawPoint(
 	vertex0.SetPosition(d2Vertex->x, d2Vertex->y);
 	vertex0.SetTexcoord((int32_t)d2Vertex->s >> stShift, (int32_t)d2Vertex->t >> stShift);
 	vertex0.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
-	vertex0.SetSurfaceId(_surfaceIdTracker.GetCurrentSurfaceId());
 
 	Vertex vertex1 = vertex0;
 	Vertex vertex2 = vertex0;
@@ -575,8 +555,7 @@ void D2DXContext::OnDrawPoint(
 	_vertices.items[_vertexCount++] = vertex2;
 
 	batch.SetVertexCount(3);
-
-	_surfaceIdTracker.UpdateBatchSurfaceId(batch, _majorGameState, _gameSize, &_vertices.items[batch.GetStartVertex()], batch.GetVertexCount());
+	FillVertexSurfaceId(batch);
 
 	assert(_batchCount < _batches.capacity);
 	_batches.items[_batchCount++] = batch;
@@ -590,15 +569,12 @@ void D2DXContext::OnDrawLine(
 {
 	Timer _timer(ProfCategory::Draw);
 	Batch batch = _scratchBatch;
-	batch.SetGameAddress(GameAddress::DrawLine);
 	batch.SetStartVertex(_vertexCount);
 	batch.SetPaletteIndex(D2DX_WHITE_PALETTE_INDEX);
-	batch.SetTextureCategory(TextureCategory::UserInterface);
-
+	
 	EnsureReadVertexStateUpdated(batch);
 
 	auto vertex0 = _readVertexState.templateVertex;
-	vertex0.SetSurfaceId(D2DX_SURFACE_ID_USER_INTERFACE);
 
 	const uint32_t iteratedColorMask = _readVertexState.iteratedColorMask;
 	const uint32_t maskedConstantColor = _readVertexState.maskedConstantColor;
@@ -609,118 +585,28 @@ void D2DXContext::OnDrawLine(
 	vertex0.SetTexcoord((int32_t)d2Vertex1->s >> _glideState.stShift, (int32_t)d2Vertex1->t >> _glideState.stShift);
 	vertex0.SetColor(maskedConstantColor | (d2Vertex1->color & iteratedColorMask));
 
-	if (!_options.GetFlag(OptionsFlag::NoFpsMod) &&
-		currentlyDrawingWeatherParticles)
-	{
-		Timer _timer2(ProfCategory::MotionPrediction);
+	OffsetF widening = { d2Vertex1->y - d2Vertex0->y, d2Vertex1->x - d2Vertex0->x };
+	widening.NormalizeTo(0.5f);
 
-		uint32_t currentWeatherParticleIndex = *currentlyDrawingWeatherParticleIndexPtr;
-		const int32_t act = _gameHelper->GetCurrentAct();
+	Vertex vertex1 = vertex0;
+	Vertex vertex2 = vertex0;
+	Vertex vertex3 = vertex0;
 
-		OffsetF startPos{ d2Vertex0->x, d2Vertex0->y };
-		OffsetF endPos{ d2Vertex1->x, d2Vertex1->y };
+	vertex0.SetPosition(d2Vertex1->x + widening.x, d2Vertex1->y - widening.y);
+	vertex1.SetPosition(d2Vertex0->x + widening.x, d2Vertex0->y - widening.y);
+	vertex2.SetPosition(d2Vertex1->x - widening.x, d2Vertex1->y + widening.y);
+	vertex3.SetPosition(d2Vertex0->x - widening.x, d2Vertex0->y + widening.y);
 
-		// Snow is drawn with two independent lines per particle index (different places on screen).
-		// We solve this by tracking each line separately.
-		if (currentWeatherParticleIndex == _lastWeatherParticleIndex)
-		{
-			currentWeatherParticleIndex += 256;
-		}
+	assert((_vertexCount + 6) < _vertices.capacity);
+	_vertices.items[_vertexCount++] = vertex0;
+	_vertices.items[_vertexCount++] = vertex1;
+	_vertices.items[_vertexCount++] = vertex2;
+	_vertices.items[_vertexCount++] = vertex1;
+	_vertices.items[_vertexCount++] = vertex3;
+	_vertices.items[_vertexCount++] = vertex2;
 
-		const auto offset = _weatherMotionPredictor.GetOffset(currentWeatherParticleIndex, startPos);
-		startPos += offset;
-		endPos += offset;
-
-		auto dir = endPos - startPos;
-		float len = dir.Length();
-		dir.Normalize();
-
-		const float blendFactor = 0.1f;
-		const float oneMinusBlendFactor = 1.0f - blendFactor;
-
-		if (_avgDir.x == 0.0f && _avgDir.y == 0.0f)
-		{
-			_avgDir = dir;
-		}
-		else
-		{
-			_avgDir = _avgDir * oneMinusBlendFactor + dir * blendFactor;
-			_avgDir.Normalize();
-		}
-		dir = _avgDir;
-
-		const OffsetF wideningVec{ -dir.y * 1.25f, dir.x * 1.25f };
-		const float stretchBack = act == 4 ? 1.0f : 3.0f;
-		const float stretchAhead = act == 4 ? 1.0f : 1.0f;
-
-		auto midPos = startPos;
-		startPos -= dir * len * stretchBack;
-		endPos = startPos + dir * len * (stretchBack + stretchAhead);
-
-		Vertex vertex1 = vertex0;
-		Vertex vertex2 = vertex0;
-		Vertex vertex3 = vertex0;
-		Vertex vertex4 = vertex0;
-
-		vertex0.SetPosition(midPos.x, midPos.y);
-		vertex1.SetPosition(startPos.x, startPos.y);
-		vertex2.SetPosition((midPos.x + wideningVec.x), (midPos.y + wideningVec.y));
-		vertex3.SetPosition(endPos.x, endPos.y);
-		vertex4.SetPosition((midPos.x - wideningVec.x), (midPos.y - wideningVec.y));
-
-		uint32_t c = vertex0.GetColor();
-		c &= 0x00FFFFFF;
-		vertex1.SetColor(c);
-		vertex2.SetColor(c);
-		vertex3.SetColor(c);
-		vertex4.SetColor(c);
-
-		assert((_vertexCount + 3 * 4) < _vertices.capacity);
-
-		_vertices.items[_vertexCount++] = vertex0;
-		_vertices.items[_vertexCount++] = vertex1;
-		_vertices.items[_vertexCount++] = vertex2;
-
-		_vertices.items[_vertexCount++] = vertex0;
-		_vertices.items[_vertexCount++] = vertex2;
-		_vertices.items[_vertexCount++] = vertex3;
-
-		_vertices.items[_vertexCount++] = vertex0;
-		_vertices.items[_vertexCount++] = vertex3;
-		_vertices.items[_vertexCount++] = vertex4;
-
-		_vertices.items[_vertexCount++] = vertex0;
-		_vertices.items[_vertexCount++] = vertex4;
-		_vertices.items[_vertexCount++] = vertex1;
-
-		batch.SetVertexCount(3 * 4);
-
-		_lastWeatherParticleIndex = currentWeatherParticleIndex;
-	}
-	else
-	{
-		OffsetF widening = { d2Vertex1->y - d2Vertex0->y, d2Vertex1->x - d2Vertex0->x };
-		widening.NormalizeTo(0.5f);
-
-		Vertex vertex1 = vertex0;
-		Vertex vertex2 = vertex0;
-		Vertex vertex3 = vertex0;
-
-		vertex0.SetPosition(d2Vertex1->x + widening.x, d2Vertex1->y - widening.y);
-		vertex1.SetPosition(d2Vertex0->x + widening.x, d2Vertex0->y - widening.y);
-		vertex2.SetPosition(d2Vertex1->x - widening.x, d2Vertex1->y + widening.y);
-		vertex3.SetPosition(d2Vertex0->x - widening.x, d2Vertex0->y + widening.y);
-
-		assert((_vertexCount + 6) < _vertices.capacity);
-		_vertices.items[_vertexCount++] = vertex0;
-		_vertices.items[_vertexCount++] = vertex1;
-		_vertices.items[_vertexCount++] = vertex2;
-		_vertices.items[_vertexCount++] = vertex1;
-		_vertices.items[_vertexCount++] = vertex3;
-		_vertices.items[_vertexCount++] = vertex2;
-
-		batch.SetVertexCount(6);
-	}
+	batch.SetVertexCount(6);
+	FillVertexSurfaceId(batch);
 
 	assert(_batchCount < _batches.capacity);
 	_batches.items[_batchCount++] = batch;
@@ -733,8 +619,6 @@ const Batch D2DXContext::PrepareBatchForSubmit(
 	uint32_t vertexCount,
 	uint32_t gameContext) const
 {
-	auto gameAddress = _gameHelper->IdentifyGameAddress(gameContext);
-
 	auto tcl = _renderContext->UpdateTexture(batch, _glideState.tmuMemory.items, _glideState.tmuMemory.capacity);
 
 	if (tcl._textureAtlas < 0)
@@ -745,11 +629,20 @@ const Batch D2DXContext::PrepareBatchForSubmit(
 	batch.SetTextureAtlas(tcl._textureAtlas);
 	batch.SetTextureIndex(tcl._textureIndex);
 
-	batch.SetGameAddress(gameAddress);
 	batch.SetStartVertex(_vertexCount);
 	batch.SetVertexCount(vertexCount);
-	batch.SetTextureCategory(_gameHelper->RefineTextureCategoryFromGameAddress(batch.GetTextureCategory(), gameAddress));
 	return batch;
+}
+
+_Use_decl_annotations_
+void D2DXContext::FillVertexSurfaceId(
+	const Batch& batch)
+{
+	uint16_t id = batch.GetSurfaceId();
+	for (auto i = &_vertices.items[batch.GetStartVertex()], end = i + batch.GetVertexCount(); i < end; ++i)
+	{
+		i->SetSurfaceId(id);
+	}
 }
 
 _Use_decl_annotations_
@@ -848,8 +741,7 @@ void D2DXContext::OnDrawVertexArray(
 	}
 
 	_vertexCount += 3 * (count - 2);
-
-	_surfaceIdTracker.UpdateBatchSurfaceId(batch, _majorGameState, _gameSize, &_vertices.items[batch.GetStartVertex()], batch.GetVertexCount());
+	FillVertexSurfaceId(batch);
 
 	assert(_batchCount < _batches.capacity);
 	_batches.items[_batchCount++] = batch;
@@ -903,8 +795,7 @@ void D2DXContext::OnDrawVertexArrayContiguous(
 	pVertices[5] = pVertices[2];
 
 	_vertexCount += 6;
-
-	_surfaceIdTracker.UpdateBatchSurfaceId(batch, _majorGameState, _gameSize, &_vertices.items[batch.GetStartVertex()], batch.GetVertexCount());
+	FillVertexSurfaceId(batch);
 
 	assert(_batchCount < _batches.capacity);
 	_batches.items[_batchCount++] = batch;
@@ -1053,13 +944,13 @@ void D2DXContext::PrepareLogoTextureBatch()
 	_logoTextureBatch.SetTextureStartAddress(0);
 	_logoTextureBatch.SetTextureHash(hash);
 	_logoTextureBatch.SetTextureSize(128, 128);
-	_logoTextureBatch.SetTextureCategory(TextureCategory::TitleScreen);
 	_logoTextureBatch.SetAlphaBlend(AlphaBlend::SrcAlphaInvSrcAlpha);
 	_logoTextureBatch.SetIsChromaKeyEnabled(true);
 	_logoTextureBatch.SetRgbCombine(RgbCombine::ColorMultipliedByTexture);
 	_logoTextureBatch.SetAlphaCombine(AlphaCombine::One);
 	_logoTextureBatch.SetPaletteIndex(D2DX_LOGO_PALETTE_INDEX);
 	_logoTextureBatch.SetVertexCount(6);
+	_logoTextureBatch.SetSurfaceId(D2DX_SURFACE_UI);
 
 	memset(data, 0, _logoTextureBatch.GetTextureWidth() * _logoTextureBatch.GetTextureHeight());
 
@@ -1095,10 +986,10 @@ void D2DXContext::InsertLogoOnTitleScreen()
 	const float y2 = static_cast<float>(gameSize.height - 9 - 16);
 	const uint32_t color = 0xFFFFa090;
 
-	Vertex vertex0(x1, y1, 0, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex1(x2, y1, 80, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex2(x2, y2, 80, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
-	Vertex vertex3(x1, y2, 0, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_ID_USER_INTERFACE);
+	Vertex vertex0(x1, y1, 0, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_UI);
+	Vertex vertex1(x2, y1, 80, 0, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_UI);
+	Vertex vertex2(x2, y2, 80, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_UI);
+	Vertex vertex3(x1, y2, 0, 41, color, true, _logoTextureBatch.GetTextureIndex(), D2DX_LOGO_PALETTE_INDEX, D2DX_SURFACE_UI);
 
 	assert((_vertexCount + 6) < _vertices.capacity);
 	_vertices.items[_vertexCount++] = vertex0;
@@ -1109,11 +1000,6 @@ void D2DXContext::InsertLogoOnTitleScreen()
 	_vertices.items[_vertexCount++] = vertex3;
 
 	_batches.items[_batchCount++] = _logoTextureBatch;
-}
-
-GameVersion D2DXContext::GetGameVersion() const
-{
-	return _gameHelper->GetVersion();
 }
 
 _Use_decl_annotations_
@@ -1175,7 +1061,7 @@ Size D2DXContext::GetSuggestedCustomResolution()
 {
 	if (_suggestedGameSize.width == 0)
 	{
-		if (_gameHelper->IsProjectDiablo2())
+		if (_gameHelper.isProjectDiablo2)
 		{
 			_suggestedGameSize = { 1068, 600 };
 		}
@@ -1209,18 +1095,13 @@ const Options& D2DXContext::GetOptions() const
 	return _options;
 }
 
-void D2DXContext::OnBufferClear()
+Options& D2DXContext::GetOptions()
 {
-	if (_majorGameState == MajorGameState::InGame &&
-		!_options.GetFlag(OptionsFlag::NoFpsMod))
-	{
-		Timer _timer(ProfCategory::MotionPrediction);
-		_weatherMotionPredictor.Update(_renderContext.get());
-	}
-	}
+	return _options;
+}
 
 _Use_decl_annotations_
-void D2DXContext::BeginDrawText(
+void D2DXContext::InterceptDrawText(
 	wchar_t* str)
 {
 	if (!str)
@@ -1228,10 +1109,7 @@ void D2DXContext::BeginDrawText(
 		return;
 	}
 
-	_scratchBatch.SetTextureCategory(TextureCategory::UserInterface);
-	_isDrawingText = true;
-
-	if (_gameHelper->GetVersion() == GameVersion::Lod114d)
+	if (_gameHelper.gameVersion == GameVersion::Lod114d)
 	{
 		// In 1.14d, some color codes are black. Remap them.
 
@@ -1241,41 +1119,4 @@ void D2DXContext::BeginDrawText(
 			subStr[2] = L'0';
 		}
 	}
-}
-
-void D2DXContext::EndDrawText()
-{
-	_scratchBatch.SetTextureCategory(TextureCategory::Unknown);
-	_isDrawingText = false;
-}
-
-_Use_decl_annotations_
-void D2DXContext::BeginDrawImage(
-	const D2::CellContextAny* cellContext,
-	uint32_t drawMode,
-	Offset pos,
-	D2Function d2Function)
-{
-	if (_isDrawingText)
-	{
-		return;
-	}
-
-	DrawParameters drawParameters = _gameHelper->GetDrawParameters(cellContext);
-	const bool isMiscUi = drawParameters.unitType == 0 && drawParameters.unitMode == 0 && drawMode != 3;
-	const bool isBeltItem = drawParameters.unitType == 4 && drawParameters.unitMode == 4;
-	if (isMiscUi || isBeltItem)
-	{
-		_scratchBatch.SetTextureCategory(TextureCategory::UserInterface);
-	}
-}
-
-void D2DXContext::EndDrawImage()
-{
-	if (_isDrawingText)
-	{
-		return;
-	}
-
-	_scratchBatch.SetTextureCategory(TextureCategory::Unknown);
 }

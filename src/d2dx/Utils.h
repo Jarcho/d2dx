@@ -70,7 +70,6 @@ namespace d2dx
 		_In_ int32_t h,
 		_In_reads_(pixelsSize) const uint8_t* pixels,
 		_In_ uint32_t pixelsSize,
-		_In_ uint32_t textureCategory,
 		_In_reads_(256) const uint32_t* palette);
 
 	bool DecompressLZMAToFile(

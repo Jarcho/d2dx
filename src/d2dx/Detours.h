@@ -20,18 +20,14 @@
 
 namespace d2dx
 {
-	struct IGameHelper;
+	class GameHelper;
 	struct ID2DXContext;
 	
-	void AttachDetours();
+	void AttachDetours(
+		_In_ GameHelper& gameHelper,
+		_In_ ID2DXContext& d2dxContext);
 
-	void AttachLateDetours(
-		_In_ IGameHelper* gameHelper,
-		_In_ ID2DXContext* d2dxContext);
-
-	void DetachLateDetours(
-		_In_ IGameHelper* gameHelper,
-		_In_ ID2DXContext* d2dxContext);
-
-	void DetachDetours();
+	void DetachDetours(
+		_In_ GameHelper& gameHelper,
+		_In_ ID2DXContext& d2dxContext);
 }

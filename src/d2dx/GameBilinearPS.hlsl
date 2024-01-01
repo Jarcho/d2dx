@@ -62,6 +62,6 @@ void main(
 		? (c12Discard ? c34 : c12)
 		: lerp(c12, c34, blend.yyyy);
 
-	ps_out.color = ps_in.color * c;
-	ps_out.surfaceId = ps_in.color.a > 0.5 ? surfaceId * 1.0 / 16383.0 : 0.0;
+    ps_out.color = ps_in.color * c;
+    ps_out.surfaceId = surfaceId * 1.0 / 16383.0;
 }
