@@ -75,6 +75,7 @@ void Options::ApplyCfg(
 		READ_OPTOUTS_FLAG(OptionsFlag::NoWide, "nowide");
 		READ_OPTOUTS_FLAG(OptionsFlag::NoLogo, "nologo");
 		READ_OPTOUTS_FLAG(OptionsFlag::NoVSync, "novsync");
+		READ_OPTOUTS_FLAG(OptionsFlag::NoFrameTearing, "noframetearing");
 		READ_OPTOUTS_FLAG(OptionsFlag::NoAntiAliasing, "noaa");
 		READ_OPTOUTS_FLAG(OptionsFlag::NoCompatModeFix, "nocompatmodefix");
 		READ_OPTOUTS_FLAG(OptionsFlag::NoTitleChange, "notitlechange");
@@ -170,6 +171,7 @@ void Options::ApplyCommandLine(
 	if (strstr(cmdLine, "-dxnotitlechange")) SetFlag(OptionsFlag::NoTitleChange, true);
 	if (strstr(cmdLine, "-dxnokeepaspectratio")) SetFlag(OptionsFlag::NoKeepAspectRatio, true);
 	if (strstr(cmdLine, "-dxvsync")) SetFlag(OptionsFlag::NoVSync, false);
+	if (strstr(cmdLine, "-dxframetearing")) SetFlag(OptionsFlag::NoFrameTearing, false);
 
 	char const* upscale = strstr(cmdLine, "-dxupscale=");
 	if (upscale)

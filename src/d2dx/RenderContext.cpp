@@ -110,9 +110,17 @@ RenderContext::RenderContext(
 	{
 		if (_dxgiAllowTearingFlagSupported && GetWindowsVersion().major >= 10)
 		{
-			_syncStrategy = RenderContextSyncStrategy::AllowTearing;
 			_swapChainCreateFlags |= DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-			D2DX_LOG("Using 'AllowTearing' sync strategy.")
+			if (!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoFrameTearing))
+			{
+				_syncStrategy = RenderContextSyncStrategy::AllowTearing;
+				D2DX_LOG("Using 'AllowTearing' sync strategy.")
+			}
+			else
+			{
+				_syncStrategy = RenderContextSyncStrategy::Interval0;
+				D2DX_LOG("Using 'Interval0' sync strategy.")
+			}
 		}
 		else
 		{

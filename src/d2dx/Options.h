@@ -34,6 +34,7 @@ namespace d2dx
 		NoTitleChange,
 		NoVSync,
 		NoKeepAspectRatio,
+		NoFrameTearing,
 
 		DbgDumpTextures,
 
@@ -97,7 +98,7 @@ namespace d2dx
 			_In_ float sharpness) noexcept;
 
 	private:
-		uint32_t _flags = 1 << (int)OptionsFlag::NoVSync;
+		uint32_t _flags = (1 << (uint32_t)OptionsFlag::NoVSync) | (1 << (uint32_t)OptionsFlag::NoFrameTearing);
 		float _windowScale = 1;
 		Offset _windowPosition{ -1, -1 };
 		Size _userSpecifiedGameSize{ -1, -1 };
