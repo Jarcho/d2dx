@@ -59,13 +59,29 @@ GameVersion GetGameVersion()
 	const int32_t c = vsFixedFileInfo->dwFileVersionLS >> 16;
 	const int32_t d = vsFixedFileInfo->dwFileVersionLS & 0xffff;
 
-	if (a == 1 && b == 0 && c == 9 && d == 22)
+	if (a == 1 && b == 0 && c == 9 && d == 19)
+	{
+		version = GameVersion::Lod109;
+	}
+	else if (a == 1 && b == 0 && c == 9 && d == 20)
+	{
+		version = GameVersion::Lod109b;
+	}
+	else if (a == 1 && b == 0 && c == 9 && d == 22)
 	{
 		version = GameVersion::Lod109d;
 	}
 	else if (a == 1 && b == 0 && c == 10 && d == 39)
 	{
 		version = GameVersion::Lod110f;
+	}
+	else if (a == 1 && b == 0 && c == 11 && d == 45)
+	{
+		version = GameVersion::Lod111;
+	}
+	else if (a == 1 && b == 0 && c == 11 && d == 46)
+	{
+		version = GameVersion::Lod111b;
 	}
 	else if (a == 1 && b == 0 && c == 12 && d == 49)
 	{
@@ -79,9 +95,17 @@ GameVersion GetGameVersion()
 	{
 		version = GameVersion::Lod113d;
 	}
-	else if (a == 1 && b == 14 && c == 3 && d == 68)
+	else if (a == 1 && b == 14 && c == 0 && d == 64)
+	{
+		D2DX_FATAL_ERROR("This version (1.14a) of Diablo II will not work with D2DX. Please upgrade to version 1.14d.");
+	}
+	else if (a == 1 && b == 14 && c == 1 && d == 68)
 	{
 		D2DX_FATAL_ERROR("This version (1.14b) of Diablo II will not work with D2DX. Please upgrade to version 1.14d.");
+	}
+	else if (a == 1 && b == 14 && c == 2 && d == 70)
+	{
+		version = GameVersion::Lod114c;
 	}
 	else if (a == 1 && b == 14 && c == 3 && d == 71)
 	{
@@ -115,16 +139,26 @@ const char* GameHelper::GetVersionString() const
 {
 	switch (gameVersion)
 	{
+	case GameVersion::Lod109:
+		return "Lod109";
+	case GameVersion::Lod109b:
+		return "Lod109b";
 	case GameVersion::Lod109d:
 		return "Lod109d";
 	case GameVersion::Lod110f:
 		return "Lod110";
+	case GameVersion::Lod111:
+		return "Lod111";
+	case GameVersion::Lod111b:
+		return "Lod111g";
 	case GameVersion::Lod112:
 		return "Lod112";
 	case GameVersion::Lod113c:
 		return "Lod113c";
 	case GameVersion::Lod113d:
 		return "Lod113d";
+	case GameVersion::Lod114c:
+		return "Lod114c";
 	case GameVersion::Lod114d:
 		return "Lod114d";
 	default:

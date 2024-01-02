@@ -85,12 +85,17 @@ namespace d2dx
 	enum class GameVersion
 	{
 		Unsupported = 0,
-		Lod109d = 1,
-		Lod110f = 2,
-		Lod112 = 3,
-		Lod113c = 4,
-		Lod113d = 5,
-		Lod114d = 6,
+		Lod109,
+		Lod109b,
+		Lod109d,
+		Lod110f,
+		Lod111,
+		Lod111b,
+		Lod112,
+		Lod113c,
+		Lod113d,
+		Lod114c,
+		Lod114d,
 	};
 
 	template<class T>
