@@ -18,7 +18,6 @@
 */
 #pragma once
 
-#include "ISimd.h"
 #include "Types.h"
 
 namespace d2dx

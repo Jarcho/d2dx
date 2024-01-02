@@ -19,7 +19,6 @@
 #pragma once
 
 #include "IRenderContext.h"
-#include "ISimd.h"
 #include "ITextureCache.h"
 #include "RenderContextResources.h"
 #include "Types.h"
@@ -57,8 +56,7 @@ namespace d2dx
 			_In_ Size gameSize,
 			_In_ Size windowSize,
 			_In_ ScreenMode initialScreenMode,
-			_In_ ID2DXContext* d2dxContext,
-			_In_ const std::shared_ptr<ISimd>& simd);
+			_In_ ID2DXContext* d2dxContext);
 		
 		virtual ~RenderContext() noexcept {}
 
@@ -201,7 +199,6 @@ namespace d2dx
 		ComPtr<IDXGISwapChain2> _swapChain2;
 		ComPtr<ID3D11RenderTargetView> _backbufferRtv;
 		std::unique_ptr<RenderContextResources> _resources;
-		std::shared_ptr<ISimd> _simd;
 
 		uint32_t _frameCount = 0;
 		Size _gameSize = { 0, 0 };

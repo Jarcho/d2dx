@@ -37,8 +37,7 @@ namespace d2dx
 		public ID2DXContext
 	{
 	public:
-		D2DXContext(
-			_In_ const std::shared_ptr<ISimd>& simd);
+		D2DXContext();
 		
 		virtual ~D2DXContext() noexcept;
 
@@ -251,7 +250,6 @@ namespace d2dx
 
 		int32_t _frame;
 		std::shared_ptr<IRenderContext> _renderContext;
-		std::shared_ptr<ISimd> _simd;
 		GameHelper _gameHelper;
 		BuiltinMods _builtinMods;
 		TextureHasher _textureHasher;

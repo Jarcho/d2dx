@@ -43,11 +43,10 @@ RenderContextResources::RenderContextResources(
 	uint32_t vbSizeBytes,
 	uint32_t cbSizeBytes,
 	Size framebufferSize,
-	ID3D11Device* device,
-	const std::shared_ptr<ISimd>& simd)
+	ID3D11Device* device)
 {
 	CreateTexture1Ds(device);
-	CreateTextureCaches(device, simd);
+	CreateTextureCaches(device);
 	CreateVideoTextures(device);
 	CreateShadersAndInputLayout(device);
 	CreateRasterizerState(device);
@@ -207,8 +206,7 @@ void RenderContextResources::CreateTexture1Ds(
 
 _Use_decl_annotations_
 void RenderContextResources::CreateTextureCaches(
-	ID3D11Device* device,
-	const std::shared_ptr<ISimd>& simd)
+	ID3D11Device* device)
 {
 	static const uint32_t capacities[7] = { 512, 1024, 2048, 2048, 1024, 512, 1024 };
 
@@ -227,7 +225,7 @@ void RenderContextResources::CreateTextureCaches(
 			height = 128;
 		}
 
-		_textureCaches[i] = std::make_unique<TextureCache>(width, height, capacities[i], texturesPerAtlas, device, simd);
+		_textureCaches[i] = std::make_unique<TextureCache>(width, height, capacities[i], texturesPerAtlas, device);
 
 		D2DX_DEBUG_LOG("Creating texture cache for %i x %i with capacity %u (%u kB).", width, height, capacities[i], _textureCaches[i]->GetMemoryFootprint() / 1024);
 

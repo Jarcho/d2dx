@@ -23,7 +23,6 @@
 #include "BuiltinMods.h"
 #include "RenderContext.h"
 #include "GameHelper.h"
-#include "SimdSse2.h"
 #include "Metrics.h"
 #include "Utils.h"
 #include "Vertex.h"
@@ -51,9 +50,7 @@ static Options GetCommandLineOptions()
 }
 
 _Use_decl_annotations_
-D2DXContext::D2DXContext(
-	const std::shared_ptr<ISimd>& simd) :
-	_simd{ simd },
+D2DXContext::D2DXContext() :
 	_frame(0),
 	_majorGameState(MajorGameState::Unknown),
 	_paletteKeys(D2DX_MAX_PALETTES, true),
@@ -211,8 +208,7 @@ void D2DXContext::OnSstWinOpen(
 			gameSize,
 			windowSize * _options.GetWindowScale(),
 			_initialScreenMode,
-			this,
-			_simd);
+			this);
 	}
 	else
 	{

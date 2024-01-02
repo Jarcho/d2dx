@@ -19,7 +19,6 @@
 #pragma once
 
 #include "Buffer.h"
-#include "ISimd.h"
 
 namespace d2dx
 {
@@ -30,8 +29,7 @@ namespace d2dx
 		TextureCachePolicyBitPmru& operator=(TextureCachePolicyBitPmru&& rhs) = default;
 
 		TextureCachePolicyBitPmru(
-			_In_ uint32_t capacity,
-			_In_ const std::shared_ptr<ISimd>& simd);
+			_In_ uint32_t capacity);
 		~TextureCachePolicyBitPmru() noexcept {}
 
 		int32_t Find(
@@ -48,7 +46,6 @@ namespace d2dx
 
 	private:
 		uint32_t _capacity = 0;
-		std::shared_ptr<ISimd> _simd;
 		Buffer<uint64_t> _contentKeys;
 		Buffer<uint32_t> _usedInFrameBits;
 		Buffer<uint32_t> _mruBits;

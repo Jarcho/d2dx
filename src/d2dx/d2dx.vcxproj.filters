@@ -46,7 +46,6 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="RenderContext.cpp" />
     <ClCompile Include="GameHelper.cpp" />
-    <ClCompile Include="SimdSse2.cpp" />
     <ClCompile Include="Glide3x.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="D2DXContext.cpp" />
@@ -79,8 +78,6 @@
     <ClInclude Include="Batch.h" />
     <ClInclude Include="GameHelper.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="ISimd.h" />
-    <ClInclude Include="SimdSse2.h" />
     <ClInclude Include="TextureCachePolicyBitPmru.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="Vertex.h" />

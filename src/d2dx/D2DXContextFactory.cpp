@@ -19,7 +19,6 @@
 #include "pch.h"
 #include "D2DXContextFactory.h"
 #include "GameHelper.h"
-#include "SimdSse2.h"
 #include "D2DXContext.h"
 
 using namespace d2dx;
@@ -34,7 +33,7 @@ ID2DXContext* D2DXContextFactory::GetInstance(
 
 	if (!instance && !destroyed && createIfNeeded)
 	{
-		instance = std::make_shared<D2DXContext>(std::make_shared<SimdSse2>());
+		instance = std::make_shared<D2DXContext>();
 	}
 
 	return instance.get();

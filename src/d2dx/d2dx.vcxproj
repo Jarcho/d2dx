@@ -280,8 +280,6 @@
     <ClInclude Include="Batch.h" />
     <ClInclude Include="GameHelper.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="ISimd.h" />
-    <ClInclude Include="SimdSse2.h" />
     <ClInclude Include="TextureCachePolicyBitPmru.h" />
     <ClInclude Include="TextureHasher.h" />
     <ClInclude Include="Types.h" />
@@ -326,12 +324,6 @@
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="RenderContext.cpp" />
     <ClCompile Include="GameHelper.cpp" />
-    <ClCompile Include="SimdSse2.cpp">
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AssemblyAndSourceCode</AssemblerOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AssemblyAndSourceCode</AssemblerOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release (Profile)|Win32'">AssemblyAndSourceCode</AssemblerOutput>
-      <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Release (ResMod)|Win32'">AssemblyAndSourceCode</AssemblerOutput>
-    </ClCompile>
     <ClCompile Include="Glide3x.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

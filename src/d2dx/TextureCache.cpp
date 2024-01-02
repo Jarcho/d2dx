@@ -31,8 +31,7 @@ TextureCache::TextureCache(
 	int32_t height,
 	uint32_t capacity,
 	uint32_t texturesPerAtlas,
-	ID3D11Device* device,
-	const std::shared_ptr<ISimd>& simd)
+	ID3D11Device* device)
 {
 	assert(_atlasCount <= 4);
 
@@ -41,7 +40,7 @@ TextureCache::TextureCache(
 	_capacity = capacity;
 	_texturesPerAtlas = texturesPerAtlas;
 	_atlasCount = (int32_t)max(1, capacity / texturesPerAtlas);
-	_policy = TextureCachePolicyBitPmru(capacity, simd);
+	_policy = TextureCachePolicyBitPmru(capacity);
 
 #ifndef D2DX_UNITTEST
 

@@ -19,19 +19,16 @@
 #include "pch.h"
 #include "Utils.h"
 #include "TextureCachePolicyBitPmru.h"
-#include "ISimd.h"
 
 using namespace d2dx;
 
 _Use_decl_annotations_
 TextureCachePolicyBitPmru::TextureCachePolicyBitPmru(
-	uint32_t capacity,
-	const std::shared_ptr<ISimd>& simd) :
+	uint32_t capacity) :
 	_capacity{ capacity },
 	_contentKeys{ capacity, true },
 	_usedInFrameBits{ capacity >> 5, true },
-	_mruBits{ capacity >> 5, true },
-	_simd{ simd }
+	_mruBits{ capacity >> 5, true }
 {
 	assert(!(capacity & 63));
 	assert(simd);
@@ -57,7 +54,7 @@ int32_t TextureCachePolicyBitPmru::Find(
 		return lastIndex;
 	}
 
-	int32_t findIndex = _simd->IndexOfUInt64(_contentKeys.items, _capacity, contentKey);
+	int32_t findIndex = IndexOfUInt64(_contentKeys.items, _capacity, contentKey);
 
 	if (findIndex >= 0)
 	{

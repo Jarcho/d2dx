@@ -53,8 +53,7 @@ RenderContext::RenderContext(
 	Size gameSize,
 	Size windowSize,
 	ScreenMode initialScreenMode,
-	ID2DXContext* d2dxContext,
-	const std::shared_ptr<ISimd>& simd)
+	ID2DXContext* d2dxContext)
 {
 	HRESULT hr = S_OK;
 
@@ -64,7 +63,6 @@ RenderContext::RenderContext(
 
 	_hWnd = hWnd;
 	_d2dxContext = d2dxContext;
-	_simd = simd;
 
 	memset(&_shadowState, 0, sizeof(_shadowState));
 
@@ -286,8 +284,7 @@ RenderContext::RenderContext(
 			_vbCapacity * sizeof(Vertex),
 			16 * sizeof(Constants),
 		framebufferSize,
-			_device.Get(),
-			simd);
+			_device.Get());
 
 	SetRasterizerState(_resources->GetRasterizerState(true));
 	_deviceContext->IASetInputLayout(_resources->GetInputLayout());

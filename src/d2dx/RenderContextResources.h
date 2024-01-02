@@ -75,8 +75,7 @@ namespace d2dx
 			_In_ uint32_t vbSizeBytes,
 			_In_ uint32_t cbSizeBytes,
 			_In_ Size framebufferSize,
-			_In_ ID3D11Device* device,
-			_In_ const std::shared_ptr<ISimd>& simd);
+			_In_ ID3D11Device* device);
 		
 		virtual ~RenderContextResources() noexcept {}
 
@@ -199,8 +198,7 @@ namespace d2dx
 			_In_ ID3D11Device* device);
 
 		void CreateTextureCaches(
-			_In_ ID3D11Device* device,
-			_In_ const std::shared_ptr<ISimd>& simd);
+			_In_ ID3D11Device* device);
 	
 		void CreateVideoTextures(
 			_In_ ID3D11Device* device);

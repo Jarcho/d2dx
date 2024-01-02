@@ -31,8 +31,7 @@ namespace d2dx
 			_In_ int32_t height,
 			_In_ uint32_t capacity,
 			_In_ uint32_t texturesPerAtlas,
-			_In_ ID3D11Device* device,
-			_In_ const std::shared_ptr<ISimd>& simd);
+			_In_ ID3D11Device* device);
 
 		virtual ~TextureCache() noexcept {}
 

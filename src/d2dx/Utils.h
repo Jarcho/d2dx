@@ -76,4 +76,9 @@ namespace d2dx
 		_In_reads_(dataSize) const uint8_t* data,
 		_In_ uint32_t dataSize,
 		_In_z_ const char* filename);
+
+	int32_t IndexOfUInt64(
+		_In_reads_(itemsCount) const uint64_t* __restrict items,
+		_In_ uint32_t itemsCount,
+		_In_ uint64_t item);
 }
