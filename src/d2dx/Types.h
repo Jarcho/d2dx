@@ -85,6 +85,8 @@ namespace d2dx
 	enum class GameVersion
 	{
 		Unsupported = 0,
+		Lod107,
+		Lod108,
 		Lod109,
 		Lod109b,
 		Lod109d,

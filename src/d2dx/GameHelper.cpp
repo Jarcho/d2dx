@@ -59,7 +59,15 @@ GameVersion GetGameVersion()
 	const int32_t c = vsFixedFileInfo->dwFileVersionLS >> 16;
 	const int32_t d = vsFixedFileInfo->dwFileVersionLS & 0xffff;
 
-	if (a == 1 && b == 0 && c == 9 && d == 19)
+	if (a == 1 && b == 0 && c == 7 && d == 0)
+	{
+		version = GameVersion::Lod107;
+	}
+	else if (a == 1 && b == 0 && c == 8 && d == 28)
+	{
+		version = GameVersion::Lod108;
+	}
+	else if (a == 1 && b == 0 && c == 9 && d == 19)
 	{
 		version = GameVersion::Lod109;
 	}
@@ -139,6 +147,10 @@ const char* GameHelper::GetVersionString() const
 {
 	switch (gameVersion)
 	{
+	case GameVersion::Lod107:
+		return "Lod107";
+	case GameVersion::Lod108:
+		return "Lod108";
 	case GameVersion::Lod109:
 		return "Lod109";
 	case GameVersion::Lod109b:

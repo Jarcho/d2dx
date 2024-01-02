@@ -671,6 +671,54 @@ void d2dx::AttachDetours(
 	{
 		switch (gameHelper.gameVersion)
 		{
+		case GameVersion::Lod107:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0xbf580);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0xc0e70;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xb5590;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0xc1bf0;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0xc1d70;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10072));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10079));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10080));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10081));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10082));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xf22b;
+			D2Win_DrawCursor_Ret = (char*)gameHelper.d2WinDll + 0xf230;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0x1830;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10117));
+
+			DrawShadowHook = &D2Client_DrawShadow_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar_Hooked;
+			break;
+
+		case GameVersion::Lod108:
+			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0xb5c70);
+			D2Client_DrawShadow_Real = (char*)gameHelper.d2ClientDll + 0xb7560;
+			D2Client_DrawUnit_Real = (char*)gameHelper.d2ClientDll + 0xabd80;
+			D2Client_DrawInvItem_Real = (char*)gameHelper.d2ClientDll + 0xb82e0;
+			D2Client_DrawUnitOverlay_Real = (char*)gameHelper.d2ClientDll + 0xb8460;
+			D2Gfx_DrawImage_Real = (D2Gfx_DrawImage)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10072));
+			D2Gfx_DrawFloor_Real = (D2Gfx_DrawFloor)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10079));
+			D2Gfx_DrawTile_Real = (D2Gfx_DrawTile)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10080));
+			D2Gfx_DrawTileAlpha_Real = (D2Gfx_DrawTileAlpha)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10081));
+			D2Gfx_DrawTileShadow_Real = (D2Gfx_DrawTileShadow)GetProcAddress((HMODULE)gameHelper.d2GfxDll, MAKEINTRESOURCEA(10082));
+			D2Win_DrawCursor_Real = (char*)gameHelper.d2WinDll + 0xf2db;
+			D2Win_DrawCursor_Ret = (char*)gameHelper.d2WinDll + 0xf2e0;
+			D2Win_DrawChar_Real = (char*)gameHelper.d2WinDll + 0x1830;
+			D2Win_DrawText_Real = (D2Win_DrawText)GetProcAddress((HMODULE)gameHelper.d2WinDll, MAKEINTRESOURCEA(10117));
+
+			DrawShadowHook = &D2Client_DrawShadow_Hooked;
+			DrawUnitHook = &D2Client_DrawUnit_Hooked;
+			DrawInvItemHook = &D2Client_DrawInvItem_Hooked;
+			DrawUnitOverlayHook = &D2Client_DrawUnitOverlay_Hooked;
+			DrawMenuCursorHook = &D2Win_DrawCursor_Hooked;
+			DrawMenuCharHook = &D2Win_DrawChar_Hooked;
+			break;
+
 		case GameVersion::Lod109:
 		case GameVersion::Lod109b:
 			D2Client_DrawCursor_Real = (D2Client_DrawCursor)((char*)gameHelper.d2ClientDll + 0xb6570);
