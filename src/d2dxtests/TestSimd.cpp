@@ -19,7 +19,7 @@
 #include "pch.h"
 #include <array>
 #include "CppUnitTest.h"
-#include "../d2dx/SimdSse2.h"
+#include "../d2dx/Utils.h"
 
 using namespace Microsoft::WRL;
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
@@ -30,15 +30,8 @@ namespace d2dxtests
 	TEST_CLASS(TestSimd)
 	{
 	public:
-		TEST_METHOD(Create)
-		{
-			auto simd = std::make_shared<SimdSse2>();
-		}
-
 		TEST_METHOD(FindUInt64)
 		{
-			auto simd = std::make_shared<SimdSse2>();
-
 			alignas(64) std::array<uint64_t, 1024> items;
 
 			for (uint64_t i = 0; i < 1024; ++i)
@@ -46,10 +39,10 @@ namespace d2dxtests
 				items[i] = 1023ull - i;
 			}
 
-			Assert::AreEqual(0, simd->IndexOfUInt64(items.data(), items.size(), 1023));
-			Assert::AreEqual(1023, simd->IndexOfUInt64(items.data(), items.size(), 0));
-			Assert::AreEqual(1009, simd->IndexOfUInt64(items.data(), items.size(), 14));
-			Assert::AreEqual(114, simd->IndexOfUInt64(items.data(), items.size(), 909));
+			Assert::AreEqual(0, IndexOfUInt64(items.data(), items.size(), 1023));
+			Assert::AreEqual(1023, IndexOfUInt64(items.data(), items.size(), 0));
+			Assert::AreEqual(1009, IndexOfUInt64(items.data(), items.size(), 14));
+			Assert::AreEqual(114, IndexOfUInt64(items.data(), items.size(), 909));
 		}
 	};
 }

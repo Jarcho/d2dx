@@ -9,9 +9,6 @@
     <ClCompile Include="TestTextureCache.cpp" />
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="TestSimd.cpp" />
-    <ClCompile Include="..\d2dx\SimdSse2.cpp">
-      <Filter>d2dx</Filter>
-    </ClCompile>
     <ClCompile Include="..\d2dx\TextureCache.cpp">
       <Filter>d2dx</Filter>
     </ClCompile>

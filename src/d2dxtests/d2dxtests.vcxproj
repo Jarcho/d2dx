@@ -188,7 +188,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release (Profile)|Win32'">NotUsing</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="..\d2dx\Profiler.cpp" />
-    <ClCompile Include="..\d2dx\SimdSse2.cpp" />
     <ClCompile Include="..\d2dx\Metrics.cpp" />
     <ClCompile Include="..\d2dx\TextureCache.cpp" />
     <ClCompile Include="..\d2dx\TextureCachePolicyBitPmru.cpp" />

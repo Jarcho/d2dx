@@ -21,7 +21,6 @@
 #include "CppUnitTest.h"
 
 #include "../d2dx/Batch.h"
-#include "../d2dx/SimdSse2.h"
 #include "../d2dx/Types.h"
 #include "../d2dx/TextureCache.h"
 
@@ -35,21 +34,19 @@ namespace d2dxtests
 	public:
 		TEST_METHOD(CreateAtlas)
 		{
-			auto simd = std::make_shared<SimdSse2>();
 			for (int32_t h = 3; h <= 8; ++h)
 			{
 				for (int32_t w = 3; w <= 8; ++w)
 				{
 					auto textureCache = std::make_unique<TextureCache>(
-						1 << w, 1 << h, 1024, 512, (ID3D11Device*)nullptr, simd);
+						1 << w, 1 << h, 1024, 512, (ID3D11Device*)nullptr);
 				}
 			}
 		}
 
 		TEST_METHOD(FindNonExistentTexture)
 		{
-			auto simd = std::make_shared<SimdSse2>();
-			auto textureCache = std::make_unique<TextureCache>(256, 128, 2048, 512, (ID3D11Device*)nullptr, simd);
+			auto textureCache = std::make_unique<TextureCache>(256, 128, 2048, 512, (ID3D11Device*)nullptr);
 			auto tcl = textureCache->FindTexture(0x12345678, -1);
 			Assert::AreEqual((int16_t)-1, tcl._textureAtlas);
 			Assert::AreEqual((int16_t)-1, tcl._textureIndex);
@@ -57,14 +54,13 @@ namespace d2dxtests
 
 		TEST_METHOD(InsertAndFindTextures)
 		{
-			auto simd = std::make_shared<SimdSse2>();
 			auto tmuData = std::make_unique<std::array<uint32_t, 2 * 256 * 128>>();
 
 			Batch batch;
 			batch.SetTextureStartAddress(0);
 			batch.SetTextureSize(256, 128);
 
-			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr, simd);
+			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr);
 
 			for (uint64_t i = 0; i < 64; ++i)
 			{
@@ -83,14 +79,13 @@ namespace d2dxtests
 
 		TEST_METHOD(FirstInsertedTextureIsReplaced)
 		{
-			auto simd = std::make_shared<SimdSse2>();
 			auto tmuData = std::make_unique<std::array<uint32_t, 2 * 256 * 128>>();
 
 			Batch batch;
 			batch.SetTextureStartAddress(0);
 			batch.SetTextureSize(256, 128);
 
-			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr, simd);
+			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr);
 
 			for (uint64_t i = 0; i < 65; ++i)
 			{
@@ -134,14 +129,13 @@ namespace d2dxtests
 
 		TEST_METHOD(SecondInsertedTextureIsReplacedIfFirstOneWasUsedInFrame)
 		{
-			auto simd = std::make_shared<SimdSse2>();
 			auto tmuData = std::make_unique<std::array<uint32_t, 2 * 256 * 128>>();
 
 			Batch batch;
 			batch.SetTextureStartAddress(0);
 			batch.SetTextureSize(256, 128);
 
-			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr, simd);
+			auto textureCache = std::make_unique<TextureCache>(256, 128, 64, 512, (ID3D11Device*)nullptr);
 
 			for (uint64_t i = 0; i < 65; ++i)
 			{
