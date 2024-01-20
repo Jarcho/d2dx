@@ -1042,6 +1042,16 @@ Offset D2DXContext::OnSetCursorPos(
 	auto hWnd = _renderContext->GetHWnd();
 	if (_initialScreenMode == ScreenMode::Windowed)
 	{
+		// When launched in windowed mode (-w) the game sets the cursor relative
+		// to the window, but it makes incorrect assumptions about window decorations.
+		RECT win;
+		GetWindowRect(hWnd, &win);
+		RECT client;
+		GetClientRect(hWnd, &client);
+		ClientToScreen(hWnd, (LPPOINT)&client);
+
+		pos.x = pos.x - GetSystemMetrics(SM_CXDLGFRAME) - win.left + client.left;
+		pos.y = pos.y - GetSystemMetrics(SM_CYCAPTION) - win.top + client.top;
 		ScreenToClient(hWnd, (LPPOINT)&pos);
 	}
 	pos = GameToWinCursorPos(pos);
