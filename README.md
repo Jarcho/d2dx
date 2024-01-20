@@ -34,24 +34,6 @@ The anti-aliasing filter is supported on all LoD versions except: `1.09c`, `1.13
 
 High FPS and motion smoothing is provided by [D2fps] and supports nearly all released Diablo II versions. This may have compatibility issues with other mods providing the same features.
 
-### BaseMod
-
-Disable `BypassFPS` in `BaseMod.ini`:
-
-```ini
-[BypassFPS]
-Enabled=0
-```
-
-### MapHack (BH.dll)
-
-Disable `Apply CPU Patch` and `Apply FPS Patch` in `BH.cfg`:
-
-```none
-Apply CPU Patch: False
-Apply FPS Patch: False
-```
-
 ### MedianXL
 
 MedianXL is not compatible with the resolution mod. Launch with `-dxnoresmod` or set `noresmod=false` in `d2dx.cfg`.
@@ -74,9 +56,9 @@ This readme contains basic information to get you started. See the [D2DX wiki](h
 
 To start the game with D2DX the game will have to be launched in glide mode. This can be done by:
 
-* Launching the game with `-3dfx`. e.g. `game.exe -3dfx`.
-* Selecting '3dfx Glide' from `D2VidTst.exe`
-* Setting `HKEY_CURRENT_USER\SOFTWARE\Blizzard Entertainment\Diablo II\VideoConfig` to `3` in the registry
+- Launching the game with `-3dfx`. e.g. `game.exe -3dfx`.
+- Selecting '3dfx Glide' from `D2VidTst.exe`
+- Setting `HKEY_CURRENT_USER\SOFTWARE\Blizzard Entertainment\Diablo II\VideoConfig` to `3` in the registry
 
 Windowed/fullscreen mode can be switched at any time by pressing ALT-Enter. The normal -w command-line option works too.
 

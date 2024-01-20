@@ -1,3 +1,17 @@
+Version 0.103.1 (2024-01-20)
+============================
+
+Bug fixes
+---------
+
+* Stabilize cursor position changes with non-integer window scale factors. (e.g. weapon switching would 'adjusts' the cursor position to the same spot, but d2dx would cause it to drift)
+* Fix cursor adjustment positions in windowed mode. (e.g. the cursor would slowly drift when opening and closing panels)
+
+Other
+-----
+
+* Update d2fps to v1.0.1. Improves snow rendering and mod compatibility.
+
 Version 0.103.0 (2024-01-08)
 ============================
 
