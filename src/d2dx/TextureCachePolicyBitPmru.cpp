@@ -31,7 +31,6 @@ TextureCachePolicyBitPmru::TextureCachePolicyBitPmru(
 	_mruBits{ capacity >> 5, true }
 {
 	assert(!(capacity & 63));
-	assert(simd);
 }
 
 _Use_decl_annotations_
