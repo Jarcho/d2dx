@@ -893,22 +893,24 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 			Size desktopSize;
 			renderContext->GetCurrentMetrics(&gameSize, &renderRect, &desktopSize);
 
-			if (mousePos.x < renderRect.offset.x || renderRect.offset.x + renderRect.size.width < mousePos.x ||
-				mousePos.y < renderRect.offset.y || renderRect.offset.y + renderRect.size.height < mousePos.y)
+			if (mousePos.x < renderRect.offset.x || renderRect.offset.x + renderRect.size.width <= mousePos.x ||
+				mousePos.y < renderRect.offset.y || renderRect.offset.y + renderRect.size.height <= mousePos.y)
 			{
+				// Mouse cursor is not actually on the game.
 				return 0;
 			}
 
-			const float xscale = (float)renderRect.size.width / gameSize.width;
-			const float yscale = (float)renderRect.size.height / gameSize.height;
-			const int32_t xpos = static_cast<int32_t>((mousePos.x - renderRect.offset.x) / xscale);
-			const int32_t ypos = static_cast<int32_t>((mousePos.y - renderRect.offset.y) / yscale);
+			const OffsetF scale = {
+				static_cast<float>(renderRect.size.width) / gameSize.width,
+				static_cast<float>(renderRect.size.height) / gameSize.height
+			};
+			mousePos = Offset(OffsetF(mousePos - renderRect.offset) / scale);
 
-			if (xpos >= gameSize.width || ypos >= gameSize.height) {
-				// Prevent Diablo II from using `SetCursor` to nudge the mouse back.
-				return 0;
-			}
-			lParam = xpos | (ypos << 16);
+			// Diablo II reacts poorly if the mouse position given is outside the game's resolution.
+			mousePos.x = min(mousePos.x, gameSize.width - 1);
+			mousePos.y = min(mousePos.y, gameSize.height - 1);
+
+			lParam = mousePos.x | (mousePos.y << 16);
 		}
 	}
 

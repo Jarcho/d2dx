@@ -223,6 +223,9 @@ namespace d2dx
 		void FillVertexSurfaceId(
 			_In_ const Batch& batch);
 
+		Offset GameToWinCursorPos(
+			_In_ Offset pos);
+
 		struct GlideState
 		{
 			Buffer<uint8_t> tmuMemory{ D2DX_TMU_MEMORY_SIZE };

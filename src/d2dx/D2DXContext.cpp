@@ -567,7 +567,7 @@ void D2DXContext::OnDrawLine(
 	Batch batch = _scratchBatch;
 	batch.SetStartVertex(_vertexCount);
 	batch.SetPaletteIndex(D2DX_WHITE_PALETTE_INDEX);
-	
+
 	EnsureReadVertexStateUpdated(batch);
 
 	auto vertex0 = _readVertexState.templateVertex;
@@ -999,7 +999,7 @@ void D2DXContext::InsertLogoOnTitleScreen()
 }
 
 _Use_decl_annotations_
-Offset D2DXContext::OnSetCursorPos(
+Offset D2DXContext::GameToWinCursorPos(
 	Offset pos)
 {
 	Size gameSize;
@@ -1007,24 +1007,44 @@ Offset D2DXContext::OnSetCursorPos(
 	Size desktopSize;
 	_renderContext->GetCurrentMetrics(&gameSize, &renderRect, &desktopSize);
 
+	if (pos.x < 0 || gameSize.width < pos.x ||
+		pos.y < 0 || gameSize.height < pos.y)
+	{
+		return pos;
+	}
+
+	const OffsetF scale = {
+		(float)renderRect.size.width / gameSize.width,
+		(float)renderRect.size.height / gameSize.height,
+	};
+
+	Offset cursorPos{ 0, 0 };
+	if (GetCursorPos((LPPOINT)&cursorPos))
+	{
+		ScreenToClient(_renderContext->GetHWnd(), (LPPOINT)&cursorPos);
+		if (renderRect.offset.x <= cursorPos.x && cursorPos.x < renderRect.offset.x + renderRect.size.width
+			&& renderRect.offset.y <= cursorPos.y && cursorPos.y < renderRect.offset.y + renderRect.size.height)
+		{
+			// Scale the cursor's movement in order to avoid rounding errors.
+			Offset delta = pos - Offset(OffsetF(cursorPos - renderRect.offset) / scale);
+			return Offset(OffsetF(delta) * scale) + cursorPos;
+		}
+	}
+
+	// If the cursor isn't currently over the game just scale the target position.
+	return Offset(OffsetF(pos) * scale) + renderRect.offset;
+}
+
+_Use_decl_annotations_
+Offset D2DXContext::OnSetCursorPos(
+	Offset pos)
+{
 	auto hWnd = _renderContext->GetHWnd();
 	if (_initialScreenMode == ScreenMode::Windowed)
 	{
 		ScreenToClient(hWnd, (LPPOINT)&pos);
 	}
-
-	if (pos.x < 0 || gameSize.width < pos.x ||
-		pos.y < 0 || gameSize.height < pos.y)
-	{
-		ClientToScreen(hWnd, (LPPOINT)&pos);
-		return pos;
-	}
-
-	const float xscale = (float)renderRect.size.width / gameSize.width;
-	const float yscale = (float)renderRect.size.height / gameSize.height;
-	pos.x = static_cast<int32_t>(pos.x * xscale) + renderRect.offset.x;
-	pos.y = static_cast<int32_t>(pos.y * yscale) + renderRect.offset.y;
-
+	pos = GameToWinCursorPos(pos);
 	ClientToScreen(hWnd, (LPPOINT)&pos);
 	return pos;
 }
@@ -1033,17 +1053,7 @@ _Use_decl_annotations_
 Offset D2DXContext::OnMouseMoveMessage(
 	Offset pos)
 {
-	Size gameSize;
-	Rect renderRect;
-	Size desktopSize;
-	_renderContext->GetCurrentMetrics(&gameSize, &renderRect, &desktopSize);
-
-	const float xscale = (float)renderRect.size.width / gameSize.width;
-	const float yscale = (float)renderRect.size.height / gameSize.height;
-	pos.x = static_cast<int32_t>(pos.x * xscale) + renderRect.offset.x;
-	pos.y = static_cast<int32_t>(pos.y * yscale) + renderRect.offset.y;
-
-	return pos;
+	return GameToWinCursorPos(pos);
 }
 
 _Use_decl_annotations_

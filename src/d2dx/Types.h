@@ -176,6 +176,11 @@ namespace d2dx
 			return { x * rhs.x, y * rhs.y };
 		}
 
+		constexpr OffsetT operator/(const OffsetT& rhs) const noexcept
+		{
+			return { x / rhs.x, y / rhs.y };
+		}
+
 		constexpr OffsetT operator+(T rhs) const noexcept
 		{
 			return { x + rhs, y + rhs };
