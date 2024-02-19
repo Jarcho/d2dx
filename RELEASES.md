@@ -1,3 +1,21 @@
+Version 0.103.2 (2024-02-19)
+============================
+
+Performance
+-----------
+
+* Don't submit draw calls which aren't on the screen. Can be a small, but noticeable improvement.
+
+Bug fixes
+---------
+
+* Don't reset the window position on resolution changes when a window position is set in `d2dx.cfg`, but the window has been moved after launch.
+
+Other
+-----
+
+* Update d2fps to v1.0.2. Fixes an occasional graphical glitch when rendering rain.
+
 Version 0.103.1 (2024-01-20)
 ============================
 
