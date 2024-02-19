@@ -93,6 +93,7 @@ namespace d2dx
 			_In_reads_(256) const uint32_t* palette) override;
 
 		virtual const Options& GetOptions() const override;
+		Options& GetOptions();
 
 		virtual ITextureCache* GetTextureCache(
 			_In_ const Batch& batch) const override;

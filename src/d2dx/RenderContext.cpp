@@ -762,6 +762,10 @@ const Options& RenderContext::GetOptions() const
 	return _d2dxContext->GetOptions();
 }
 
+Options& RenderContext::GetOptions() {
+	return _d2dxContext->GetOptions();
+}
+
 static LRESULT CALLBACK d2dxSubclassWndProc(
 	HWND hWnd,
 	UINT uMsg,
@@ -836,7 +840,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 		}
 		break;
 		
-	case WM_WINDOWPOSCHANGED:
+	case WM_WINDOWPOSCHANGED: 
 		renderContext->ClipCursor(true);
 
 		// The music is muted if the game recieves this for some reason.
@@ -844,6 +848,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 
 	case WM_ENTERSIZEMOVE:
 		renderContext->UnclipCursor();
+		renderContext->GetOptions().SetWindowPosition({ -1, -1 });
 		break;
 
 	case WM_SYSKEYDOWN: case WM_KEYDOWN:
@@ -1039,8 +1044,6 @@ void RenderContext::SetSizes(
 
 	const int32_t desktopCenterX = _desktopSize.width / 2;
 	const int32_t desktopCenterY = _screenMode == ScreenMode::FullscreenDefault ? _desktopSize.height / 2 : _desktopClientMaxHeight / 2;
-	const Offset preferredPosition = _d2dxContext->GetOptions().GetWindowPosition();
-	bool usePreferredPosition = preferredPosition.x >= 0 && preferredPosition.y >= 0;
 
 	if (_screenMode == ScreenMode::Windowed)
 	{
@@ -1048,6 +1051,10 @@ void RenderContext::SetSizes(
 
 		RECT oldWindowRect;
 		GetWindowRect(_hWnd, &oldWindowRect);
+		
+		const Offset preferredPosition = _d2dxContext->GetOptions().GetWindowPosition();
+		const bool usePreferredPosition = preferredPosition.x >= 0 && preferredPosition.y >= 0;
+
 		const int32_t oldWindowWidth = oldWindowRect.right - oldWindowRect.left;
 		const int32_t oldWindowHeight = oldWindowRect.bottom - oldWindowRect.top;
 		const int32_t oldWindowCenterX = (oldWindowRect.left + oldWindowRect.right) / 2;
