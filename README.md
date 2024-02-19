@@ -38,6 +38,10 @@ High FPS and motion smoothing is provided by [D2fps] and supports nearly all rel
 
 MedianXL is not compatible with the resolution mod. Launch with `-dxnoresmod` or set `noresmod=false` in `d2dx.cfg`.
 
+### Project Diablo 2
+
+Auto casting can sometimes get stuck when the game fps is unlocked via d2fps. Can be worked around by setting the fps to a number higher than can be rendered via `d2fps.ini` (e.g. 10000). Vsync can still be used to limit the frame rate via `d2dx.cfg`.
+
 ### Others
 
 For compatibility with other mods, see the [wiki](https://github.com/bolrog/d2dx/wiki/Compatibility-with-other-mods).
