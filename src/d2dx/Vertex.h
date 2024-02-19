@@ -113,6 +113,12 @@ namespace d2dx
 			_t = t;
 		}
 
+		inline void SetAtlasIndex(int32_t atlasIndex) noexcept
+		{
+			assert(atlasIndex >= 0 && atlasIndex <= 4095);
+			_paletteIndex_atlasIndex = (_paletteIndex_atlasIndex & ~4095) | (atlasIndex & 4095);
+		}
+
 		inline uint32_t GetColor() const noexcept
 		{
 			return _color;

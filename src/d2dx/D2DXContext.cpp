@@ -682,14 +682,7 @@ void D2DXContext::OnDrawVertexArray(
 		return;
 	}
 
-	Batch batch = PrepareBatchForSubmit(_scratchBatch, PrimitiveType::Triangles, 3 * (count - 2), gameContext);
-
-	if (!batch.IsValid())
-	{
-		return;
-	}
-
-	EnsureReadVertexStateUpdated(batch);
+	EnsureReadVertexStateUpdated(_scratchBatch);
 
 	Vertex v = _readVertexState.templateVertex;
 
@@ -698,6 +691,7 @@ void D2DXContext::OnDrawVertexArray(
 
 	Vertex* pVertices = &_vertices.items[_vertexCount];
 
+	bool onScreen = false;
 	for (int32_t i = 0; i < 3; ++i)
 	{
 		const D2::Vertex* d2Vertex = (const D2::Vertex*)pointers[i];
@@ -705,6 +699,8 @@ void D2DXContext::OnDrawVertexArray(
 		v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 		v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 		*pVertices++ = v;
+		onScreen |= 0 <= d2Vertex->x && d2Vertex->x < _gameSize.width &&
+			0 <= d2Vertex->y && d2Vertex->y < _gameSize.height;
 	}
 
 	if (mode == GR_TRIANGLE_FAN)
@@ -720,6 +716,8 @@ void D2DXContext::OnDrawVertexArray(
 			v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 			v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 			*pVertices++ = v;
+			onScreen |= 0 <= d2Vertex->x && d2Vertex->x < _gameSize.width &&
+				0 <= d2Vertex->y && d2Vertex->y < _gameSize.height;
 		}
 	}
 	else
@@ -733,14 +731,35 @@ void D2DXContext::OnDrawVertexArray(
 			v.SetTexcoord((int32_t)d2Vertex->s >> _glideState.stShift, (int32_t)d2Vertex->t >> _glideState.stShift);
 			v.SetColor(maskedConstantColor | (d2Vertex->color & iteratedColorMask));
 			*pVertices++ = v;
+			onScreen |= 0 <= d2Vertex->x && d2Vertex->x < _gameSize.width &&
+				0 <= d2Vertex->y && d2Vertex->y < _gameSize.height;
 		}
 	}
 
-	_vertexCount += 3 * (count - 2);
-	FillVertexSurfaceId(batch);
+	if (onScreen)
+	{
+		Batch batch = PrepareBatchForSubmit(_scratchBatch, PrimitiveType::Triangles, 3 * (count - 2), gameContext);
+		if (!batch.IsValid())
+		{
+			return;
+		}
 
-	assert(_batchCount < _batches.capacity);
-	_batches.items[_batchCount++] = batch;
+		pVertices = &_vertices.items[_vertexCount];
+		for (int i = 0; i < 3 * (count - 2); ++i)
+		{
+			pVertices[i].SetAtlasIndex(batch.GetTextureIndex());
+		}
+
+		_vertexCount += 3 * (count - 2);
+		FillVertexSurfaceId(batch);
+
+		assert(_batchCount < _batches.capacity);
+		_batches.items[_batchCount++] = batch;
+	}
+	else
+	{
+		AddDroppedDraw();
+	}
 }
 
 _Use_decl_annotations_
@@ -761,14 +780,7 @@ void D2DXContext::OnDrawVertexArrayContiguous(
 		return;
 	}
 
-	Batch batch = PrepareBatchForSubmit(_scratchBatch, PrimitiveType::Triangles, 6, gameContext);
-
-	if (!batch.IsValid())
-	{
-		return;
-	}
-
-	EnsureReadVertexStateUpdated(batch);
+	EnsureReadVertexStateUpdated(_scratchBatch);
 
 	const uint32_t iteratedColorMask = _readVertexState.iteratedColorMask;
 	const uint32_t maskedConstantColor = _readVertexState.maskedConstantColor;
@@ -779,22 +791,43 @@ void D2DXContext::OnDrawVertexArrayContiguous(
 
 	Vertex* pVertices = &_vertices.items[_vertexCount];
 
+	bool onScreen = false;
 	for (int32_t i = 0; i < 4; ++i)
 	{
 		v.SetPosition(d2Vertices[i].x, d2Vertices[i].y);
 		v.SetTexcoord((int32_t)d2Vertices[i].s >> _glideState.stShift, (int32_t)d2Vertices[i].t >> _glideState.stShift);
 		v.SetColor(maskedConstantColor | (d2Vertices[i].color & iteratedColorMask));
 		pVertices[i] = v;
+		onScreen |= 0 <= d2Vertices[i].x && d2Vertices[i].x < _gameSize.width &&
+			0 <= d2Vertices[i].y && d2Vertices[i].y < _gameSize.height;
 	}
 
 	pVertices[4] = pVertices[0];
 	pVertices[5] = pVertices[2];
 
-	_vertexCount += 6;
-	FillVertexSurfaceId(batch);
+	if (onScreen)
+	{
+		Batch batch = PrepareBatchForSubmit(_scratchBatch, PrimitiveType::Triangles, 3 * (count - 2), gameContext);
+		if (!batch.IsValid())
+		{
+			return;
+		}
 
-	assert(_batchCount < _batches.capacity);
-	_batches.items[_batchCount++] = batch;
+		for (int i = 0; i < 6; ++i)
+		{
+			pVertices[i].SetAtlasIndex(batch.GetTextureIndex());
+		}
+
+		_vertexCount += 6;
+		FillVertexSurfaceId(batch);
+
+		assert(_batchCount < _batches.capacity);
+		_batches.items[_batchCount++] = batch;
+	}
+	else
+	{
+		AddDroppedDraw();
+	}
 }
 
 _Use_decl_annotations_

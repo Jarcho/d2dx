@@ -122,7 +122,6 @@ SetCursorPos_Hooked(
 	_In_ int X,
 	_In_ int Y)
 {
-	Timer _timer(ProfCategory::Detours);
 	auto win32InterceptionHandler = GetWin32InterceptionHandler();
 
 	if (!win32InterceptionHandler)
@@ -156,7 +155,6 @@ SendMessageA_Hooked(
 	_Pre_maybenull_ _Post_valid_ WPARAM wParam,
 	_Pre_maybenull_ _Post_valid_ LPARAM lParam)
 {
-	Timer _timer(ProfCategory::Detours);
 	if (Msg == WM_MOUSEMOVE)
 	{
 		auto win32InterceptionHandler = GetWin32InterceptionHandler();

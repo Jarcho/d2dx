@@ -9,7 +9,6 @@ namespace d2dx {
 		TextureDownload,
 		Sleep,
 		Present,
-		Detours,
 		Count
 	};
 
@@ -38,4 +37,6 @@ namespace d2dx {
 	void AddTexHashLookup() noexcept;
 	void AddTexHashMiss(
 		_In_ size_t size) noexcept;
+
+	void AddDroppedDraw() noexcept;
 }
