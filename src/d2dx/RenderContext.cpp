@@ -1031,44 +1031,40 @@ void RenderContext::SetSizes(
 	
 	if (_screenMode == ScreenMode::Windowed)
 	{
-		const Size monitorSize = MonitorWorkSize();
-
 		RECT oldWindowRect;
 		GetWindowRect(_hWnd, &oldWindowRect);
 
-		const int32_t oldWindowWidth = oldWindowRect.right - oldWindowRect.left;
-		const int32_t oldWindowHeight = oldWindowRect.bottom - oldWindowRect.top;
-		Offset windowCenter = _windowPos;
+		Offset windowPos = _windowPos;
 		if (!updateScreenMode)
 		{
-			windowCenter = {
+			windowPos = {
 				(oldWindowRect.left + oldWindowRect.right) / 2,
 				(oldWindowRect.top + oldWindowRect.bottom) / 2
 			};
 		}
 
 		DWORD windowStyle = WS_VISIBLE;
-
 		if (!_d2dxContext->GetOptions().GetFlag(OptionsFlag::Frameless))
 		{
 			windowStyle |= WS_CAPTION | WS_MINIMIZEBOX | WS_SYSMENU;
 		}
-
-		Size windowStylingSize{ 0,0 };
 		RECT windowRect = { 0, 0, _windowSize.width, _windowSize.height };
 		AdjustWindowRect(&windowRect, windowStyle, FALSE);
-		windowStylingSize.width = (windowRect.right - windowRect.left) - _windowSize.width;
-		windowStylingSize.height = (windowRect.bottom - windowRect.top) - _windowSize.height;
+		const Size monitorSize = MonitorWorkSize();
+		const Size sizeLimit = {
+			monitorSize.width - (windowRect.right - windowRect.left - _windowSize.width),
+			monitorSize.height - (windowRect.bottom - windowRect.top - _windowSize.height)
+		};
 
-		if (_windowSize.height > monitorSize.height)
+		if (_windowSize.height > sizeLimit.height)
 		{
 			const float aspectRatio = (float)_windowSize.width / _windowSize.height;
-			_windowSize.height = monitorSize.height;
+			_windowSize.height = sizeLimit.height;
 			_windowSize.width = (int32_t)(_windowSize.height * aspectRatio);
-			if (_windowSize.width > monitorSize.width)
+			if (_windowSize.width > sizeLimit.width)
 			{
 				const float aspectRatio2 = (float)_windowSize.height / _windowSize.width;
-				_windowSize.width = monitorSize.width;
+				_windowSize.width = sizeLimit.width;
 				_windowSize.height = (int32_t)(_windowSize.width * aspectRatio2);
 			}
 
@@ -1081,27 +1077,33 @@ void RenderContext::SetSizes(
 			_windowSize,
 			!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
 
-		const Offset monitorCenter = {
-			monitorSize.width / 2 + _monitorWorkRect.left,
-			monitorSize.height / 2 + _monitorWorkRect.top
+		const Size newSize = {
+			windowRect.right - windowRect.left,
+			windowRect.bottom - windowRect.top
 		};
-		const int32_t newWindowWidth = windowRect.right - windowRect.left;
-		const int32_t newWindowHeight = windowRect.bottom - windowRect.top;
-		const int32_t newWindowX = max(
-			_monitorWorkRect.left,
-			(windowCenter.x - newWindowWidth / 2));
-		const int32_t newWindowY = max(
-			_monitorWorkRect.top,
-			(windowCenter.y - newWindowHeight / 2));
+		Offset topLeft = {
+			windowPos.x - newSize.width / 2,
+			windowPos.y - newSize.height / 2
+		};
+		const Offset bottomRight = {
+			topLeft.x + newSize.width,
+			topLeft.y + newSize.height
+		};
+		const Offset shift = {
+			min(_monitorWorkRect.right, bottomRight.x) - bottomRight.x,
+			min(_monitorWorkRect.bottom, bottomRight.y) - bottomRight.y
+		};
+		topLeft.x = max(_monitorWorkRect.left, (topLeft.x + shift.x));
+		topLeft.y = max(_monitorWorkRect.top, (topLeft.y + shift.y));
 
 		SetWindowLongPtr(_hWnd, GWL_STYLE, windowStyle);
 		SetWindowPos_Real(
 			_hWnd,
 			HWND_TOP,
-			newWindowX,
-			newWindowY,
-			newWindowWidth,
-			newWindowHeight,
+			topLeft.x,
+			topLeft.y,
+			newSize.width,
+			newSize.height,
 			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 	}
 	else if (_screenMode == ScreenMode::FullscreenDefault)
