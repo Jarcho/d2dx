@@ -174,7 +174,7 @@ SendMessageA_Hooked(
 			return 0;
 		}
 
-		lParam = ((uint16_t)adjustedPos.y << 16) | ((uint16_t)adjustedPos.x & 0xFFFF);
+		lParam = ((uint32_t)adjustedPos.y << 16) | ((uint32_t)adjustedPos.x & 0xFFFF);
 	}
 
 	return SendMessageA_Real(hWnd, Msg, wParam, lParam);

@@ -42,12 +42,6 @@ namespace d2dx
 		Discard = 1,
 	};
 
-	enum class RenderContextBackbufferSizingStrategy
-	{
-		SetSourceSize = 0,
-		ResizeBuffers = 1,
-	};
-
 	class RenderContext final : public IRenderContext
 	{
 	public:
@@ -105,8 +99,7 @@ namespace d2dx
 
 		virtual void GetCurrentMetrics(
 			_Out_opt_ Size* gameSize,
-			_Out_opt_ Rect* renderRect,
-			_Out_opt_ Size* desktopSize) const override;
+			_Out_opt_ Rect* renderRect) const override;
 
 		virtual void ToggleFullscreen() override;
 
@@ -125,6 +118,7 @@ namespace d2dx
 
 		void ClipCursor(bool resizing);
 		void UnclipCursor();
+		void UpdateMonitorInfo();
 
 	private:
 		bool IsIntegerScale() const;
@@ -167,6 +161,19 @@ namespace d2dx
 		
 		bool NeedsPostRenderUpscale() const noexcept;
 
+		Size MonitorSize() const
+		{
+			return { _monitorRect.right - _monitorRect.left, _monitorRect.bottom - _monitorRect.top };
+		}
+
+		Size MonitorWorkSize() const
+		{
+			return {
+				_monitorWorkRect.right - _monitorWorkRect.left,
+				_monitorWorkRect.bottom - _monitorWorkRect.top
+			};
+		}
+
 		struct Constants final
 		{
 			float screenSize[2] = { 0.0f, 0.0f };
@@ -205,14 +212,13 @@ namespace d2dx
 		Size _gameSize = { 0, 0 };
 		Rect _renderRect = { 0,0,0,0 };
 		Size _windowSize = { 0,0 };
-		Size _desktopSize = { 0,0 };
+		Offset _windowPos = { -1, -1 };
 		int32_t _desktopClientMaxHeight = 0;
 		uint32_t _vbWriteIndex = 0;
 		uint32_t _vbCapacity = 0;
 		Constants _constants;
 		RenderContextSyncStrategy _syncStrategy = RenderContextSyncStrategy::AllowTearing;
 		RenderContextSwapStrategy _swapStrategy = RenderContextSwapStrategy::FlipDiscard;
-		RenderContextBackbufferSizingStrategy _backbufferSizingStrategy = RenderContextBackbufferSizingStrategy::SetSourceSize;
 		DWORD _swapChainCreateFlags = 0;
 		bool _dxgiAllowTearingFlagSupported = false;
 		bool _frameLatencyWaitableObjectSupported = false;
@@ -225,6 +231,9 @@ namespace d2dx
 		bool _hasAdjustedWindowPlacement = false;
 		bool _isActiveWindow = false;
 		bool _isCursorClipped = false;
+		HMONITOR _monitor = nullptr;
+		RECT _monitorRect = { 0, 0, 0, 0 };
+		RECT _monitorWorkRect = { 0, 0, 0, 0 };
 
 		int64_t _prevTimeStamp;
 		double _frameTimeMs;

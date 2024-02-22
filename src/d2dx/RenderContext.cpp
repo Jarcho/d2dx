@@ -68,14 +68,36 @@ RenderContext::RenderContext(
 
 	_constants.sharpness = _d2dxContext->GetOptions().GetBilinearSharpness();
 
-	_desktopSize = { GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-	_desktopClientMaxHeight = GetSystemMetrics(SM_CYFULLSCREEN);
+	
+	Offset startPos = _d2dxContext->GetOptions().GetWindowPosition();
+	RECT windowRect;
+	GetWindowRect(_hWnd, &windowRect);
+	Offset windowPos = {
+		(windowRect.right + windowRect.left) / 2,
+		(windowRect.bottom - windowRect.top) / 2
+	};
+	if (startPos.x != -1 || startPos.y != -1)
+	{
+		Offset offset = startPos - windowPos;
+		windowPos = startPos;
+		SetWindowPos_Real(
+			hWnd,
+			HWND_TOP,
+			windowRect.left + offset.x,
+			windowRect.top + offset.y,
+			windowRect.right - windowRect.left,
+			windowRect.bottom - windowRect.top,
+			SWP_SHOWWINDOW | SWP_NOSENDCHANGING);
+	}
+	_windowPos = windowPos;
+
+	UpdateMonitorInfo();
 
 	_gameSize = gameSize;
 	_windowSize = windowSize;
 	_renderRect = Metrics::GetRenderRect(
 		gameSize,
-		_screenMode == ScreenMode::FullscreenDefault ? _desktopSize : _windowSize,
+		_screenMode == ScreenMode::FullscreenDefault ? MonitorSize()  : _windowSize,
 		!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
 
 #ifndef NDEBUG
@@ -155,8 +177,8 @@ RenderContext::RenderContext(
 	DXGI_SWAP_CHAIN_DESC swapChainDesc;
 	ZeroMemory(&swapChainDesc, sizeof(swapChainDesc));
 	swapChainDesc.BufferCount = 2;
-	swapChainDesc.BufferDesc.Width = _desktopSize.width;
-	swapChainDesc.BufferDesc.Height = _desktopSize.height;
+	swapChainDesc.BufferDesc.Width = 0;
+	swapChainDesc.BufferDesc.Height = 0;
 	swapChainDesc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
@@ -208,25 +230,6 @@ RenderContext::RenderContext(
 	}
 
 	_swapChain1.As(&_swapChain2);
-
-#ifdef ALLOW_SET_SOURCE_SIZE
-	if (_swapChain2)
-	{
-		_backbufferSizingStrategy = RenderContextBackbufferSizingStrategy::SetSourceSize;
-		D2DX_LOG("Using 'SetSourceSize' backbuffer sizing strategy.");
-
-		if (!_options.noVSync && _frameLatencyWaitableObjectSupported)
-		{
-			D2DX_LOG("Will sync using IDXGISwapChain2::GetFrameLatencyWaitableObject.");
-			_frameLatencyWaitableObject = _swapChain2->GetFrameLatencyWaitableObject();
-		}
-	}
-	else
-#endif
-	{
-		_backbufferSizingStrategy = RenderContextBackbufferSizingStrategy::ResizeBuffers;
-		D2DX_LOG("Using 'ResizeBuffers' backbuffer sizing strategy.")
-	}
 
 	if (SUCCEEDED(_deviceContext->QueryInterface(IID_PPV_ARGS(&_deviceContext1))))
 	{
@@ -842,13 +845,13 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 		
 	case WM_WINDOWPOSCHANGED: 
 		renderContext->ClipCursor(true);
+		renderContext->UpdateMonitorInfo();
 
 		// The music is muted if the game recieves this for some reason.
 		return 0;
 
 	case WM_ENTERSIZEMOVE:
 		renderContext->UnclipCursor();
-		renderContext->GetOptions().SetWindowPosition({ -1, -1 });
 		break;
 
 	case WM_SYSKEYDOWN: case WM_KEYDOWN:
@@ -895,8 +898,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 
 			Size gameSize;
 			Rect renderRect;
-			Size desktopSize;
-			renderContext->GetCurrentMetrics(&gameSize, &renderRect, &desktopSize);
+			renderContext->GetCurrentMetrics(&gameSize, &renderRect);
 
 			if (mousePos.x < renderRect.offset.x || renderRect.offset.x + renderRect.size.width <= mousePos.x ||
 				mousePos.y < renderRect.offset.y || renderRect.offset.y + renderRect.size.height <= mousePos.y)
@@ -915,7 +917,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 			mousePos.x = min(mousePos.x, gameSize.width - 1);
 			mousePos.y = min(mousePos.y, gameSize.height - 1);
 
-			lParam = mousePos.x | (mousePos.y << 16);
+			lParam = ((uint32_t)mousePos.y << 16) | ((uint32_t)mousePos.x & 0xFFFF);
 		}
 	}
 
@@ -999,23 +1001,14 @@ ITextureCache* RenderContext::GetTextureCache(
 
 void RenderContext::ResizeBackbuffer()
 {
-	if (_backbufferSizingStrategy == RenderContextBackbufferSizingStrategy::SetSourceSize)
-	{
-		D2DX_CHECK_HR(_swapChain2->SetSourceSize(
-			_renderRect.offset.x * 2 + _renderRect.size.width,
-			_renderRect.offset.y * 2 + _renderRect.size.height));
-	}
-	else if (_backbufferSizingStrategy == RenderContextBackbufferSizingStrategy::ResizeBuffers)
-	{
-		SetRenderTargets(nullptr, nullptr);
-		_backbufferRtv = nullptr;
+	SetRenderTargets(nullptr, nullptr);
+	_backbufferRtv = nullptr;
 
-		D2DX_CHECK_HR(_swapChain1->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, _swapChainCreateFlags));
+	D2DX_CHECK_HR(_swapChain1->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, _swapChainCreateFlags));
 
-		ComPtr<ID3D11Texture2D> backbuffer;
-		D2DX_CHECK_HR(_swapChain1->GetBuffer(0, IID_PPV_ARGS(&backbuffer)));
-		D2DX_CHECK_HR(_device->CreateRenderTargetView(backbuffer.Get(), nullptr, &_backbufferRtv));
-	}
+	ComPtr<ID3D11Texture2D> backbuffer;
+	D2DX_CHECK_HR(_swapChain1->GetBuffer(0, IID_PPV_ARGS(&backbuffer)));
+	D2DX_CHECK_HR(_device->CreateRenderTargetView(backbuffer.Get(), nullptr, &_backbufferRtv));
 }
 
 _Use_decl_annotations_
@@ -1029,36 +1022,30 @@ void RenderContext::SetSizes(
 	}
 
 	bool updateGameSize = gameSize != _gameSize;
+	bool updateScreenMode = screenMode != _screenMode;
 	_gameSize = gameSize;
 	_windowSize = windowSize;
 	_screenMode = screenMode;
-
-	auto displaySize = _screenMode == ScreenMode::FullscreenDefault ? _desktopSize : _windowSize;
-	Rect renderRect = Metrics::GetRenderRect(
-		_gameSize,
-		displaySize,
-		!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
-
-	bool centerOnCurrentPosition = _hasAdjustedWindowPlacement;
-	_hasAdjustedWindowPlacement = true;
-
-	const int32_t desktopCenterX = _desktopSize.width / 2;
-	const int32_t desktopCenterY = _screenMode == ScreenMode::FullscreenDefault ? _desktopSize.height / 2 : _desktopClientMaxHeight / 2;
-
+;
+	Rect renderRect;
+	
 	if (_screenMode == ScreenMode::Windowed)
 	{
-		Size maxWindowSize{ _desktopSize.width, _desktopClientMaxHeight };
+		const Size monitorSize = MonitorWorkSize();
 
 		RECT oldWindowRect;
 		GetWindowRect(_hWnd, &oldWindowRect);
-		
-		const Offset preferredPosition = _d2dxContext->GetOptions().GetWindowPosition();
-		const bool usePreferredPosition = preferredPosition.x >= 0 && preferredPosition.y >= 0;
 
 		const int32_t oldWindowWidth = oldWindowRect.right - oldWindowRect.left;
 		const int32_t oldWindowHeight = oldWindowRect.bottom - oldWindowRect.top;
-		const int32_t oldWindowCenterX = (oldWindowRect.left + oldWindowRect.right) / 2;
-		const int32_t oldWindowCenterY = (oldWindowRect.top + oldWindowRect.bottom) / 2;
+		Offset windowCenter = _windowPos;
+		if (!updateScreenMode)
+		{
+			windowCenter = {
+				(oldWindowRect.left + oldWindowRect.right) / 2,
+				(oldWindowRect.top + oldWindowRect.bottom) / 2
+			};
+		}
 
 		DWORD windowStyle = WS_VISIBLE;
 
@@ -1073,48 +1060,77 @@ void RenderContext::SetSizes(
 		windowStylingSize.width = (windowRect.right - windowRect.left) - _windowSize.width;
 		windowStylingSize.height = (windowRect.bottom - windowRect.top) - _windowSize.height;
 
-		if (_windowSize.height > maxWindowSize.height)
+		if (_windowSize.height > monitorSize.height)
 		{
 			const float aspectRatio = (float)_windowSize.width / _windowSize.height;
-			_windowSize.height = maxWindowSize.height;
+			_windowSize.height = monitorSize.height;
 			_windowSize.width = (int32_t)(_windowSize.height * aspectRatio);
-			if (_windowSize.width > maxWindowSize.width)
+			if (_windowSize.width > monitorSize.width)
 			{
 				const float aspectRatio2 = (float)_windowSize.height / _windowSize.width;
-				_windowSize.width = maxWindowSize.width;
+				_windowSize.width = monitorSize.width;
 				_windowSize.height = (int32_t)(_windowSize.width * aspectRatio2);
 			}
-
-			renderRect = Metrics::GetRenderRect(
-				_gameSize,
-				_windowSize,
-				!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
 
 			windowRect = { 0, 0, _windowSize.width, _windowSize.height };
 			AdjustWindowRect(&windowRect, windowStyle, FALSE);
 		}
 
+		renderRect = Metrics::GetRenderRect(
+			_gameSize,
+			_windowSize,
+			!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
+
+		const Offset monitorCenter = {
+			monitorSize.width / 2 + _monitorWorkRect.left,
+			monitorSize.height / 2 + _monitorWorkRect.top
+		};
 		const int32_t newWindowWidth = windowRect.right - windowRect.left;
 		const int32_t newWindowHeight = windowRect.bottom - windowRect.top;
-		const int32_t newWindowCenterX = centerOnCurrentPosition ? oldWindowCenterX : desktopCenterX;
-		const int32_t newWindowCenterY = centerOnCurrentPosition ? oldWindowCenterY : desktopCenterY;
-		const int32_t newWindowX = usePreferredPosition ? preferredPosition.x : (newWindowCenterX - newWindowWidth / 2);
-		const int32_t newWindowY = max(0, usePreferredPosition ? preferredPosition.y : (newWindowCenterY - newWindowHeight / 2));
+		const int32_t newWindowX = max(
+			_monitorWorkRect.left,
+			(windowCenter.x - newWindowWidth / 2));
+		const int32_t newWindowY = max(
+			_monitorWorkRect.top,
+			(windowCenter.y - newWindowHeight / 2));
 
 		SetWindowLongPtr(_hWnd, GWL_STYLE, windowStyle);
-		SetWindowPos_Real(_hWnd, HWND_TOP, newWindowX, newWindowY, newWindowWidth, newWindowHeight, SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
-
-#ifndef NDEBUG
-		RECT newWindowRect;
-		GetWindowRect(_hWnd, &newWindowRect);
-		assert(newWindowWidth == (newWindowRect.right - newWindowRect.left));
-		assert(newWindowHeight == (newWindowRect.bottom - newWindowRect.top));
-#endif
+		SetWindowPos_Real(
+			_hWnd,
+			HWND_TOP,
+			newWindowX,
+			newWindowY,
+			newWindowWidth,
+			newWindowHeight,
+			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 	}
 	else if (_screenMode == ScreenMode::FullscreenDefault)
 	{
+		if (updateScreenMode)
+		{
+			RECT windowRect;
+			GetWindowRect(_hWnd, &windowRect);
+			_windowPos = {
+				(windowRect.right + windowRect.left) / 2,
+				(windowRect.bottom + windowRect.top) / 2
+			};
+		}
+
+		const Size size = MonitorSize();
+		renderRect = Metrics::GetRenderRect(
+			_gameSize,
+			size,
+			!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
+
 		SetWindowLongPtr(_hWnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
-		SetWindowPos_Real(_hWnd, HWND_TOP, 0, 0, _desktopSize.width, _desktopSize.height, SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+		SetWindowPos_Real(
+			_hWnd,
+			HWND_TOP,
+			_monitorRect.left,
+			_monitorRect.top,
+			size.width,
+			size.height,
+			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 	}
 
 	bool updateRenderSize = renderRect.size != _renderRect.size;
@@ -1151,9 +1167,7 @@ void RenderContext::SetSizes(
 		::SetWindowTextA(_hWnd, newWindowText);
 	}
 
-	D2DX_LOG("Sizes: desktop %ix%i, window %ix%i, game %ix%i, render %ix%i",
-		_desktopSize.width,
-		_desktopSize.height,
+	D2DX_LOG("Sizes: window %ix%i, game %ix%i, render %ix%i",
 		_windowSize.width,
 		_windowSize.height,
 		_gameSize.width,
@@ -1203,6 +1217,7 @@ bool RenderContext::IsAllowTearingFlagSupported() const
 
 void RenderContext::ToggleFullscreen()
 {
+	
 	if (_screenMode == ScreenMode::FullscreenDefault)
 	{
 		SetSizes(_gameSize, _windowSize, ScreenMode::Windowed);
@@ -1216,8 +1231,7 @@ void RenderContext::ToggleFullscreen()
 _Use_decl_annotations_
 void RenderContext::GetCurrentMetrics(
 	Size* gameSize,
-	Rect* renderRect,
-	Size* desktopSize) const
+	Rect* renderRect) const
 {
 	if (gameSize)
 	{
@@ -1227,11 +1241,6 @@ void RenderContext::GetCurrentMetrics(
 	if (renderRect)
 	{
 		*renderRect = _renderRect;
-	}
-
-	if (desktopSize)
-	{
-		*desktopSize = _desktopSize;
 	}
 }
 
@@ -1281,4 +1290,27 @@ bool RenderContext::NeedsPostRenderUpscale() const noexcept
 	return _d2dxContext->GetOptions().GetUpscaleMethod() == UpscaleMethod::Rasterize ?
 		false :
 		_gameSize != _renderRect.size;
+}
+
+void RenderContext::UpdateMonitorInfo()
+{
+	HMONITOR m = MonitorFromWindow(_hWnd, MONITOR_DEFAULTTONEAREST);
+	if (_monitor == m) return;
+
+	_monitor = m;
+	MONITORINFO info;
+	info.cbSize = sizeof(MONITORINFO);
+
+	if (GetMonitorInfoW(_monitor, &info) == 0)
+	{
+		_monitorRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+	}
+	else
+	{
+		_monitorRect = info.rcMonitor;
+		_monitorWorkRect = info.rcWork;
+	}
+
+	Size size = MonitorSize();
+	D2DX_LOG("Monitor size: %ix%i", size.width, size.height);
 }

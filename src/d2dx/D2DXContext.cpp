@@ -422,7 +422,7 @@ void D2DXContext::OnBufferSwap()
 	_vertexCount = 0;
 	_nextSurface = D2DX_SURFACE_FIRST;
 
-	_renderContext->GetCurrentMetrics(&_gameSize, nullptr, nullptr);
+	_renderContext->GetCurrentMetrics(&_gameSize, nullptr);
 
 	_avgDir = { 0.0f, 0.0f };
 
@@ -1007,7 +1007,7 @@ void D2DXContext::InsertLogoOnTitleScreen()
 	_logoTextureBatch.SetStartVertex(_vertexCount);
 
 	Size gameSize;
-	_renderContext->GetCurrentMetrics(&gameSize, nullptr, nullptr);
+	_renderContext->GetCurrentMetrics(&gameSize, nullptr);
 
 	const float x1 = static_cast<float>(gameSize.width - 90 - 16);
 	const float x2 = static_cast<float>(gameSize.width - 10 - 16);
@@ -1037,8 +1037,7 @@ Offset D2DXContext::GameToWinCursorPos(
 {
 	Size gameSize;
 	Rect renderRect;
-	Size desktopSize;
-	_renderContext->GetCurrentMetrics(&gameSize, &renderRect, &desktopSize);
+	_renderContext->GetCurrentMetrics(&gameSize, &renderRect);
 
 	if (pos.x < 0 || gameSize.width < pos.x ||
 		pos.y < 0 || gameSize.height < pos.y)
