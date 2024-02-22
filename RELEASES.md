@@ -1,3 +1,21 @@
+Version 0.103.3 (2024-02-21)
+============================
+
+Bug fixes
+---------
+
+* Fix the mouse wheel not working depending on the cursor's position.
+* Fix window size limits only taking the primary monitor's resolution into account. Now uses whichever monitor the window is currently on.
+* Fix full screen only working on the primary monitor. Now uses whichever monitor the window is currently on.
+* Fix the game's window being moved incorrectly when placed on a monitor either above or to the left of the primary monitor.
+* Remember the window's position before entering full screen mode rather than always returning to the center of the primary monitor.
+* The `position` config in `d2dx.cfg` can now be used to set a negative value to support position left and above the primary monitor. `[-1, -1]` is still used as a special value to mean the center of the primary monitor.
+
+Other
+-----
+
+* The `position` config in `d2dx.cfg` now refers to the center of the window, not the top left.
+
 Version 0.103.2 (2024-02-19)
 ============================
 
