@@ -886,7 +886,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 			[[fallthrough]];
 
 	default:
-		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
+		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST && uMsg != WM_MOUSEWHEEL && uMsg != WM_MOUSEHWHEEL)
 		{
 
 			if (uMsg != WM_MOUSEMOVE)
