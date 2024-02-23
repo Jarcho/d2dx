@@ -886,15 +886,18 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 			[[fallthrough]];
 
 	default:
-		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST && uMsg != WM_MOUSEWHEEL && uMsg != WM_MOUSEHWHEEL)
+		if (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST)
 		{
-
 			if (uMsg != WM_MOUSEMOVE)
 			{
 				renderContext->ClipCursor(false);
 			}
-
+			
 			Offset mousePos = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+			if (uMsg == WM_MOUSEWHEEL || uMsg == WM_MOUSEHWHEEL)
+			{
+				ScreenToClient(hWnd, reinterpret_cast<LPPOINT>(&mousePos));
+			}
 
 			Size gameSize;
 			Rect renderRect;
