@@ -3,28 +3,28 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LocalDebuggerCommand>C:\Program Files\Diablo II\game.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide -w -dxnoresmod</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\Program Files\Diablo II</LocalDebuggerWorkingDirectory>
     <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LocalDebuggerCommand>C:\Program Files\Diablo II\game.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide -w -dxnoresmod</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\Program Files\Diablo II</LocalDebuggerWorkingDirectory>
     <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (Profile)|Win32'">
     <LocalDebuggerCommand>C:\Program Files\Diablo II\game.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide -w -dxnoresmod</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\Program Files\Diablo II</LocalDebuggerWorkingDirectory>
     <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release (ResMod)|Win32'">
     <LocalDebuggerCommand>C:\Program Files\Diablo II\game.exe</LocalDebuggerCommand>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>-3dfx -dxnologo -dxnowide -w -dxnoresmod</LocalDebuggerCommandArguments>
     <LocalDebuggerWorkingDirectory>C:\Program Files\Diablo II</LocalDebuggerWorkingDirectory>
     <LocalDebuggerDebuggerType>NativeOnly</LocalDebuggerDebuggerType>
   </PropertyGroup>

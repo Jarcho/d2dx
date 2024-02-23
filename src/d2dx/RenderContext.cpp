@@ -1093,11 +1093,11 @@ void RenderContext::SetSizes(
 			topLeft.y + newSize.height
 		};
 		const Offset shift = {
-			min(_monitorWorkRect.right, bottomRight.x) - bottomRight.x,
-			min(_monitorWorkRect.bottom, bottomRight.y) - bottomRight.y
+			min(max(_monitorWorkRect.right, oldWindowRect.right), bottomRight.x) - bottomRight.x,
+			min(max(_monitorWorkRect.bottom, oldWindowRect.bottom), bottomRight.y) - bottomRight.y
 		};
-		topLeft.x = max(_monitorWorkRect.left, (topLeft.x + shift.x));
-		topLeft.y = max(_monitorWorkRect.top, (topLeft.y + shift.y));
+		topLeft.x = max(min(_monitorWorkRect.left, oldWindowRect.left), (topLeft.x + shift.x));
+		topLeft.y = max(min(_monitorWorkRect.top, oldWindowRect.top), (topLeft.y + shift.y));
 
 		SetWindowLongPtr(_hWnd, GWL_STYLE, windowStyle);
 		SetWindowPos_Real(
