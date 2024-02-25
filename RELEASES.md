@@ -1,3 +1,13 @@
+Version 0.103.4 (2024-02-25)
+============================
+
+Bug fixes
+---------
+
+* Don't automatically position the window off the bottom or the right of the monitor.
+* Don't force the window onto the monitor when resizing if it's already placed off the edge.
+* Don't let Diablo 2 reposition the cursor when using the mouse wheel on game versions before `1.14`.
+
 Version 0.103.3 (2024-02-21)
 ============================
 
@@ -40,7 +50,7 @@ Version 0.103.1 (2024-01-20)
 Bug fixes
 ---------
 
-* Stabilize cursor position changes with non-integer window scale factors. (e.g. weapon switching would 'adjusts' the cursor position to the same spot, but d2dx would cause it to drift)
+* Stabilize cursor position changes with non-integer window scale factors. (e.g. weapon switching would 'adjust' the cursor position to the same spot, but d2dx would cause it to drift)
 * Fix cursor adjustment positions in windowed mode. (e.g. the cursor would slowly drift when opening and closing panels)
 
 Other
