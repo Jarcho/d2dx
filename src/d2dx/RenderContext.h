@@ -118,7 +118,7 @@ namespace d2dx
 
 		void ClipCursor(bool resizing);
 		void UnclipCursor();
-		void UpdateMonitorInfo();
+		void OnWinPosChanged();
 
 	private:
 		bool IsIntegerScale() const;
@@ -213,6 +213,7 @@ namespace d2dx
 		Rect _renderRect = { 0,0,0,0 };
 		Size _windowSize = { 0,0 };
 		Offset _windowPos = { -1, -1 };
+		bool _useSavedWindowPos = false;
 		int32_t _desktopClientMaxHeight = 0;
 		uint32_t _vbWriteIndex = 0;
 		uint32_t _vbCapacity = 0;

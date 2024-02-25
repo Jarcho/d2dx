@@ -91,7 +91,7 @@ RenderContext::RenderContext(
 	}
 	_windowPos = windowPos;
 
-	UpdateMonitorInfo();
+	OnWinPosChanged();
 
 	_gameSize = gameSize;
 	_windowSize = windowSize;
@@ -845,7 +845,7 @@ static LRESULT CALLBACK d2dxSubclassWndProc(
 		
 	case WM_WINDOWPOSCHANGED: 
 		renderContext->ClipCursor(true);
-		renderContext->UpdateMonitorInfo();
+		renderContext->OnWinPosChanged();
 
 		// The music is muted if the game recieves this for some reason.
 		return 0;
@@ -1038,12 +1038,13 @@ void RenderContext::SetSizes(
 		GetWindowRect(_hWnd, &oldWindowRect);
 
 		Offset windowPos = _windowPos;
-		if (!updateScreenMode)
+		if (!(updateScreenMode || _useSavedWindowPos))
 		{
 			windowPos = {
 				(oldWindowRect.left + oldWindowRect.right) / 2,
 				(oldWindowRect.top + oldWindowRect.bottom) / 2
 			};
+			_windowPos = windowPos;
 		}
 
 		DWORD windowStyle = WS_VISIBLE;
@@ -1138,6 +1139,7 @@ void RenderContext::SetSizes(
 			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 	}
 
+	_useSavedWindowPos = true;
 	bool updateRenderSize = renderRect.size != _renderRect.size;
 	_renderRect = renderRect;
 	ClipCursor(true);
@@ -1297,8 +1299,9 @@ bool RenderContext::NeedsPostRenderUpscale() const noexcept
 		_gameSize != _renderRect.size;
 }
 
-void RenderContext::UpdateMonitorInfo()
+void RenderContext::OnWinPosChanged()
 {
+	_useSavedWindowPos = false;
 	HMONITOR m = MonitorFromWindow(_hWnd, MONITOR_DEFAULTTONEAREST);
 	if (_monitor == m) return;
 
