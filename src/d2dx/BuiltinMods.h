@@ -26,7 +26,7 @@ namespace d2dx
     {
     public:
         void Init(
-            _In_ HMODULE hModule,
+            _In_opt_ HMODULE hModule,
             _In_ Size gameSize,
             _In_ Options& options);
     };

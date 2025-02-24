@@ -49,7 +49,6 @@ static Options GetCommandLineOptions()
 	return options;
 }
 
-_Use_decl_annotations_
 D2DXContext::D2DXContext() :
 	_frame(0),
 	_majorGameState(MajorGameState::Unknown),
@@ -745,7 +744,7 @@ void D2DXContext::OnDrawVertexArray(
 		}
 
 		pVertices = &_vertices.items[_vertexCount];
-		for (int i = 0; i < 3 * (count - 2); ++i)
+		for (uint32_t i = 0; i < 3 * (count - 2); ++i)
 		{
 			pVertices[i].SetAtlasIndex(batch.GetTextureIndex());
 		}

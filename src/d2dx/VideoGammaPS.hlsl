@@ -24,5 +24,8 @@ Texture2D tex : register(t0);
 float4 main(
 	in DisplayPSInput ps_in) : SV_TARGET
 {
+#pragma warning(push)
+#pragma warning(disable:3571)
     return pow(tex.Sample(BilinearSampler, ps_in.tc), 1/1.5) * float4(1, 1, 1, 0) + float4(0, 0, 0, 1);
+#pragma warning(pop)
 }
