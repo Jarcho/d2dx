@@ -41,59 +41,59 @@ namespace d2dx
 
 		inline int32_t GetPaletteIndex() const noexcept
 		{
-			return _isChromaKeyEnabled_textureAtlas_paletteIndex & 0xF;
+			return (int32_t)((_isChromaKeyEnabled_textureAtlas_paletteIndex & PALETTE_INDEX_MASK) >> PALETTE_INDEX_SHIFT);
 		}
 
 		inline void SetPaletteIndex(int32_t paletteIndex) noexcept
 		{
 			assert(paletteIndex >= 0 && paletteIndex < 16);
-			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0xF0;
-			_isChromaKeyEnabled_textureAtlas_paletteIndex |= paletteIndex;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= ~PALETTE_INDEX_MASK;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= (paletteIndex << PALETTE_INDEX_SHIFT);
 		}
 
 		inline bool IsChromaKeyEnabled() const noexcept
 		{
-			return (_isChromaKeyEnabled_textureAtlas_paletteIndex & 0x80) != 0;
+			return (_isChromaKeyEnabled_textureAtlas_paletteIndex & CHROMAKEY_MASK) != 0;
 		}
 
 		inline void SetIsChromaKeyEnabled(bool enable) noexcept
 		{
-			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0x7F;
-			_isChromaKeyEnabled_textureAtlas_paletteIndex |= enable ? 0x80 : 0;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= ~CHROMAKEY_MASK;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= (uint8_t)enable << CHROMAKEY_SHIFT;
 		}
 
 		inline RgbCombine GetRgbCombine() const noexcept
 		{
-			return (RgbCombine)(_filterMode_primitiveType_combiners & 0x01);
+			return (RgbCombine)((_filterMode_primitiveType_combiners & RGB_COMBINE_MASK) >> RGB_COMBINE_SHIFT);
 		}
 
 		inline void SetRgbCombine(RgbCombine rgbCombine) noexcept
 		{
 			assert((int32_t)rgbCombine >= 0 && (int32_t)rgbCombine < 2);
-			_filterMode_primitiveType_combiners &= ~0x01;
-			_filterMode_primitiveType_combiners |= (uint8_t)rgbCombine & 0x01;
+			_filterMode_primitiveType_combiners &= ~RGB_COMBINE_MASK;
+			_filterMode_primitiveType_combiners |= (uint8_t)rgbCombine << RGB_COMBINE_SHIFT;
 		}
 
 		inline AlphaCombine GetAlphaCombine() const noexcept
 		{
-			return (AlphaCombine)((_filterMode_primitiveType_combiners >> 1) & 0x01);
+			return (AlphaCombine)((_filterMode_primitiveType_combiners & ALPHA_COMBINE_MASK) >> ALPHA_COMBINE_SHIFT);
 		}
 
 		inline void SetAlphaCombine(AlphaCombine alphaCombine) noexcept
 		{
 			assert((int32_t)alphaCombine >= 0 && (int32_t)alphaCombine < 2);
-			_filterMode_primitiveType_combiners &= ~0x02;
-			_filterMode_primitiveType_combiners |= ((uint8_t)alphaCombine << 1) & 0x02;
+			_filterMode_primitiveType_combiners &= ~ALPHA_COMBINE_MASK;
+			_filterMode_primitiveType_combiners |= (uint8_t)alphaCombine << ALPHA_COMBINE_SHIFT;
 		}
 
 		inline int32_t GetTextureWidth() const noexcept
 		{
-			return 1 << (((_textureHeight_textureWidth_alphaBlend >> 2) & 7) + 1);
+			return 1 << (((_textureHeight_textureWidth_alphaBlend & TEXTURE_WIDTH_MASK) >> TEXTURE_WIDTH_SHIFT) + 1);
 		}
 
 		inline int32_t GetTextureHeight() const noexcept
 		{
-			return 1 << (((_textureHeight_textureWidth_alphaBlend >> 5) & 7) + 1);
+			return 1 << (((_textureHeight_textureWidth_alphaBlend & TEXTURE_HEIGHT_MASK) >> TEXTURE_HEIGHT_SHIFT) + 1);
 		}
 
 		inline void SetTextureSize(int32_t width, int32_t height) noexcept
@@ -103,34 +103,34 @@ namespace d2dx
 			BitScanReverse(&h, (uint32_t)height);
 			assert(w >= 3 && w <= 8);
 			assert(h >= 3 && h <= 8);
-			_textureHeight_textureWidth_alphaBlend &= ~0xFC;
-			_textureHeight_textureWidth_alphaBlend |= (h - 1) << 5;
-			_textureHeight_textureWidth_alphaBlend |= (w - 1) << 2;
+			_textureHeight_textureWidth_alphaBlend &= ~(TEXTURE_WIDTH_MASK | TEXTURE_HEIGHT_MASK);
+			_textureHeight_textureWidth_alphaBlend |= (h - 1) << TEXTURE_HEIGHT_SHIFT;
+			_textureHeight_textureWidth_alphaBlend |= (w - 1) << TEXTURE_WIDTH_SHIFT;
 		}
 
 		inline AlphaBlend GetAlphaBlend() const noexcept
 		{
-			return (AlphaBlend)(_textureHeight_textureWidth_alphaBlend & 3);
+			return (AlphaBlend)((_textureHeight_textureWidth_alphaBlend & ALPHA_BLEND_MASK) >> ALPHA_BLEND_SHIFT);
 		}
 
 		inline void SetAlphaBlend(AlphaBlend alphaBlend) noexcept
 		{
 			assert((uint32_t)alphaBlend < 4);
-			_textureHeight_textureWidth_alphaBlend &= ~0x03;
-			_textureHeight_textureWidth_alphaBlend |= (uint32_t)alphaBlend & 3;
+			_textureHeight_textureWidth_alphaBlend &= ~ALPHA_BLEND_MASK;
+			_textureHeight_textureWidth_alphaBlend |= (uint8_t)alphaBlend << ALPHA_BLEND_SHIFT;
 		}
 
 		inline int32_t GetStartVertex() const noexcept
 		{
-			return _startVertexLow | ((_startVertexHigh_textureIndex & 0xF000) << 4);
+			return _startVertexLow | ((_startVertexHigh_textureIndex & HIGH_VERTEX_MASK) >> HIGH_VERTEX_SHIFT << 16);
 		}
 
 		inline void SetStartVertex(int32_t startVertex) noexcept
 		{
 			assert(startVertex <= 0xFFFFF);
 			_startVertexLow = startVertex & 0xFFFF;
-			_startVertexHigh_textureIndex &= ~0xF000;
-			_startVertexHigh_textureIndex |= (startVertex >> 4) & 0xF000;
+			_startVertexHigh_textureIndex &= ~HIGH_VERTEX_MASK;
+			_startVertexHigh_textureIndex |= (startVertex >> 16) << HIGH_VERTEX_SHIFT;
 		}
 
 		inline uint32_t GetVertexCount() const noexcept
@@ -176,20 +176,20 @@ namespace d2dx
 		inline void SetTextureAtlas(uint32_t textureAtlas) noexcept
 		{
 			assert(textureAtlas < 8);
-			_isChromaKeyEnabled_textureAtlas_paletteIndex &= 0b10001111;
-			_isChromaKeyEnabled_textureAtlas_paletteIndex |= (textureAtlas & 0b111) << 4;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex &= ~TEXTURE_ATLAS_MASK;
+			_isChromaKeyEnabled_textureAtlas_paletteIndex |= (uint8_t)textureAtlas << TEXTURE_ATLAS_SHIFT;
 		}
 
 		inline uint32_t GetTextureIndex() const noexcept
 		{
-			return (uint32_t)(_startVertexHigh_textureIndex & 0x0FFF);
+			return (uint32_t)(_startVertexHigh_textureIndex & TEXTURE_INDEX_MASK) >> TEXTURE_INDEX_SHIFT;
 		}
 
 		inline void SetTextureIndex(uint32_t textureIndex) noexcept
 		{
 			assert(textureIndex < 4096);
-			_startVertexHigh_textureIndex &= ~0x0FFF;
-			_startVertexHigh_textureIndex |= (uint16_t)(textureIndex & 0x0FFF);
+			_startVertexHigh_textureIndex &= ~TEXTURE_INDEX_MASK;
+			_startVertexHigh_textureIndex |= (uint16_t)textureIndex << TEXTURE_INDEX_SHIFT;
 		}
 
 		inline int32_t GetTextureStartAddress() const noexcept
@@ -214,13 +214,13 @@ namespace d2dx
 		inline void SetFilterMode(GrTextureFilterMode_t mode) noexcept
 		{
 			assert(mode == 0 || mode == 1);
-			_filterMode_primitiveType_combiners &= ~0b11101111;
-			_filterMode_primitiveType_combiners |= (mode & 1) << 4;
+			_filterMode_primitiveType_combiners &= ~FILTER_MODE_MASK;
+			_filterMode_primitiveType_combiners |= (uint8_t)mode << FILTER_MODE_SHIFT;
 		}
 
 		inline GrTextureFilterMode_t GetFilterMode() const noexcept
 		{
-			return _filterMode_primitiveType_combiners >> 4;
+			return (GrTextureFilterMode_t)((_filterMode_primitiveType_combiners & FILTER_MODE_MASK) >> FILTER_MODE_SHIFT);
 		}
 
 		void SetSurfaceId(int16_t id) noexcept
@@ -248,6 +248,32 @@ namespace d2dx
 		uint8_t _textureHeight_textureWidth_alphaBlend;			// HHHWWWBB
 		uint8_t _isChromaKeyEnabled_textureAtlas_paletteIndex;	// CAAAPPPP
 		uint8_t _filterMode_primitiveType_combiners;			// ...MPPCC
+
+		static const int TEXTURE_INDEX_SHIFT = 0;
+		static const int HIGH_VERTEX_SHIFT = 12;
+		static const int TEXTURE_HEIGHT_SHIFT = 5;
+		static const int TEXTURE_WIDTH_SHIFT = 2;
+		static const int ALPHA_BLEND_SHIFT = 0;
+		static const int CHROMAKEY_SHIFT = 7;
+		static const int TEXTURE_ATLAS_SHIFT = 4;
+		static const int PALETTE_INDEX_SHIFT = 0;
+		static const int FILTER_MODE_SHIFT = 4;
+		static const int PRIMITIVE_TYPE_SHIFT = 2;
+		static const int ALPHA_COMBINE_SHIFT = 1;
+		static const int RGB_COMBINE_SHIFT = 0;
+
+		static const uint16_t TEXTURE_INDEX_MASK = 0b00001111'11111111;
+		static const uint16_t HIGH_VERTEX_MASK   = 0b11110000'00000000;
+		static const uint8_t TEXTURE_HEIGHT_MASK = 0b11100000;
+		static const uint8_t TEXTURE_WIDTH_MASK  = 0b00011100;
+		static const uint8_t ALPHA_BLEND_MASK    = 0b00000011;
+		static const uint8_t CHROMAKEY_MASK      = 0b10000000;
+		static const uint8_t TEXTURE_ATLAS_MASK  = 0b01110000;
+		static const uint8_t PALETTE_INDEX_MASK  = 0b00001111;
+		static const uint8_t FILTER_MODE_MASK    = 0b00010000;
+		static const uint8_t PRIMITIVE_TYPE_MASK = 0b00001100;
+		static const uint8_t ALPHA_COMBINE_MASK  = 0b00000010;
+		static const uint8_t RGB_COMBINE_MASK  = 0b00000001;
 	};
 
 	static_assert(sizeof(Batch) == 24, "sizeof(Batch)");
