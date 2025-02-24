@@ -197,7 +197,6 @@ DrawTextA_Hooked(
 	return 0;
 }
 
-
 _Success_(return)
 int(
 	WINAPI *
@@ -210,6 +209,26 @@ int(
 		_Inout_ LPRECT lprc,
 		_In_ UINT format) = DrawTextA;
 
+#pragma warning(push)
+#pragma warning(disable:4996)
+BOOL(WINAPI* GetVersionExA_Real)(_Inout_ LPOSVERSIONINFOA lpVersionInformation) = GetVersionExA;
+#pragma warning(pop) 
+BOOL
+WINAPI
+GetVersionExA_Hooked(
+	_Inout_ LPOSVERSIONINFOA lpVersionInformation)
+{
+	if (!GetVersionExA_Real(lpVersionInformation)) {
+		return FALSE;
+	}
+	if (lpVersionInformation->dwMajorVersion > 5 || (lpVersionInformation->dwMajorVersion == 5 && lpVersionInformation->dwMinorVersion > 2))
+	{
+		// Work around Diablo II's has bad mouse button/wheel detection
+		lpVersionInformation->dwMajorVersion = 5;
+		lpVersionInformation->dwMinorVersion = 2;
+	}
+	return TRUE;
+}
 
 typedef void(__cdecl* D2Client_DrawCursor)();
 typedef void(__fastcall* D2Client_DrawShadow)(void*);
@@ -657,6 +676,14 @@ void d2dx::AttachDetours(
 	DetourAttach(&(PVOID&)ShowCursor_Real, ShowCursor_Hooked);
 	DetourAttach(&(PVOID&)SetCursorPos_Real, SetCursorPos_Hooked);
 	DetourAttach(&(PVOID&)SetWindowPos_Real, SetWindowPos_Hooked);
+	switch (gameHelper.gameVersion)
+	{
+	case GameVersion::Lod114c:
+	case GameVersion::Lod114d:
+		break;
+	default:
+		DetourAttach(&(PVOID&)GetVersionExA_Real, GetVersionExA_Hooked);
+	}
 #ifdef D2DX_PROFILE
 	DetourAttach(&(PVOID&)SleepEx_Real, SleepEx_Hooked);
 #endif
@@ -997,6 +1024,14 @@ void d2dx::DetachDetours(
 	DetourDetach(&(PVOID&)ShowCursor_Real, ShowCursor_Hooked);
 	DetourDetach(&(PVOID&)SetCursorPos_Real, SetCursorPos_Hooked);
 	DetourDetach(&(PVOID&)SetWindowPos_Real, SetWindowPos_Hooked);
+	switch (gameHelper.gameVersion)
+	{
+	case GameVersion::Lod114c:
+	case GameVersion::Lod114d:
+		break;
+	default:
+		DetourDetach(&(PVOID&)GetVersionExA_Real, GetVersionExA_Hooked);
+	}
 #ifdef D2DX_PROFILE
 	DetourDetach(&(PVOID&)SleepEx_Real, SleepEx_Hooked);
 #endif
