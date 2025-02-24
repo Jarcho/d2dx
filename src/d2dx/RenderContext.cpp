@@ -1026,6 +1026,7 @@ void RenderContext::SetSizes(
 
 	bool updateGameSize = gameSize != _gameSize;
 	bool updateScreenMode = screenMode != _screenMode;
+	Size oldWindowSize = _windowSize;
 	_gameSize = gameSize;
 	_windowSize = windowSize;
 	_screenMode = screenMode;
@@ -1100,18 +1101,22 @@ void RenderContext::SetSizes(
 		topLeft.x = max(min(_monitorWorkRect.left, oldWindowRect.left), (topLeft.x + shift.x));
 		topLeft.y = max(min(_monitorWorkRect.top, oldWindowRect.top), (topLeft.y + shift.y));
 
-		SetWindowLongPtr(_hWnd, GWL_STYLE, windowStyle);
-		SetWindowPos_Real(
-			_hWnd,
-			HWND_TOP,
-			topLeft.x,
-			topLeft.y,
-			newSize.width,
-			newSize.height,
-			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+		if (updateScreenMode || _windowSize != oldWindowSize)
+		{
+			SetWindowLongPtr(_hWnd, GWL_STYLE, windowStyle);
+			SetWindowPos_Real(
+				_hWnd,
+				HWND_TOP,
+				topLeft.x,
+				topLeft.y,
+				newSize.width,
+				newSize.height,
+				SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
+		}
 	}
 	else if (_screenMode == ScreenMode::FullscreenDefault)
 	{
+		const Size size = MonitorSize();
 		if (updateScreenMode)
 		{
 			RECT windowRect;
@@ -1120,23 +1125,22 @@ void RenderContext::SetSizes(
 				(windowRect.right + windowRect.left) / 2,
 				(windowRect.bottom + windowRect.top) / 2
 			};
+
+			SetWindowLongPtr(_hWnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
+			SetWindowPos_Real(
+				_hWnd,
+				HWND_TOP,
+				_monitorRect.left,
+				_monitorRect.top,
+				size.width,
+				size.height,
+				SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 		}
 
-		const Size size = MonitorSize();
 		renderRect = Metrics::GetRenderRect(
 			_gameSize,
 			size,
 			!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
-
-		SetWindowLongPtr(_hWnd, GWL_STYLE, WS_VISIBLE | WS_POPUP);
-		SetWindowPos_Real(
-			_hWnd,
-			HWND_TOP,
-			_monitorRect.left,
-			_monitorRect.top,
-			size.width,
-			size.height,
-			SWP_SHOWWINDOW | SWP_NOSENDCHANGING | SWP_FRAMECHANGED);
 	}
 
 	_useSavedWindowPos = true;
