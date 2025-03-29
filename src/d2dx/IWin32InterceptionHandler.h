@@ -31,5 +31,8 @@ namespace d2dx
 
 		virtual Offset OnMouseMoveMessage(
 			_In_ Offset pos) = 0;
+
+		virtual bool IsD2ClientModule(
+			_In_ HMODULE module) = 0;
 	};
 }

@@ -177,6 +177,9 @@ namespace d2dx
 		virtual Offset OnMouseMoveMessage(
 			_In_ Offset pos) override;
 
+		virtual bool IsD2ClientModule(
+			_In_ HMODULE module) override;
+
 #pragma endregion IWin32InterceptionHandler
 
 #pragma region ID2InterceptionHandler

@@ -215,7 +215,8 @@ BOOL(WINAPI* GetVersionExA_Real)(_Inout_ LPOSVERSIONINFOA lpVersionInformation) 
 #pragma warning(pop) 
 BOOL
 WINAPI
-GetVersionExA_Hooked(
+GetVersionExA_HookedImpl(
+	_In_ uintptr_t return_addr,
 	_Inout_ LPOSVERSIONINFOA lpVersionInformation)
 {
 	if (!GetVersionExA_Real(lpVersionInformation)) {
@@ -223,11 +224,33 @@ GetVersionExA_Hooked(
 	}
 	if (lpVersionInformation->dwMajorVersion > 5 || (lpVersionInformation->dwMajorVersion == 5 && lpVersionInformation->dwMinorVersion > 2))
 	{
-		// Work around Diablo II's has bad mouse button/wheel detection
-		lpVersionInformation->dwMajorVersion = 5;
-		lpVersionInformation->dwMinorVersion = 2;
+		HMODULE module;
+		if (GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS, (LPCWSTR)return_addr, &module))
+		{
+			auto win32InterceptionHandler = GetWin32InterceptionHandler();
+			if (win32InterceptionHandler && win32InterceptionHandler->IsD2ClientModule(module))
+			{
+				// Work around Diablo II's has bad mouse button/wheel detection
+				lpVersionInformation->dwMajorVersion = 5;
+				lpVersionInformation->dwMinorVersion = 2;
+			}
+		}
 	}
 	return TRUE;
+}
+
+__declspec(naked)
+BOOL
+WINAPI
+GetVersionExA_Hooked(
+	_Inout_ LPOSVERSIONINFOA lpVersionInformation)
+{
+	__asm
+	{
+		mov eax, [esp]
+		push eax
+		jmp GetVersionExA_HookedImpl
+	}
 }
 
 typedef void(__cdecl* D2Client_DrawCursor)();

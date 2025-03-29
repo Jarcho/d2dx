@@ -1098,6 +1098,13 @@ Offset D2DXContext::OnMouseMoveMessage(
 }
 
 _Use_decl_annotations_
+bool D2DXContext::IsD2ClientModule(
+	HMODULE module)
+{
+	return this->_gameHelper.d2ClientDll == module;
+}
+
+_Use_decl_annotations_
 void D2DXContext::SetCustomResolution(
 	Size size)
 {
