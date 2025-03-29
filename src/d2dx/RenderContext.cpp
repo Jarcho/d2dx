@@ -57,8 +57,6 @@ RenderContext::RenderContext(
 {
 	HRESULT hr = S_OK;
 
-	_screenMode = initialScreenMode;
-
 	_prevTimeStamp = TimeStamp();
 
 	_hWnd = hWnd;
@@ -92,13 +90,7 @@ RenderContext::RenderContext(
 	_windowPos = windowPos;
 
 	OnWinPosChanged();
-
-	_gameSize = gameSize;
-	_windowSize = windowSize;
-	_renderRect = Metrics::GetRenderRect(
-		gameSize,
-		_screenMode == ScreenMode::FullscreenDefault ? MonitorSize()  : _windowSize,
-		!_d2dxContext->GetOptions().GetFlag(OptionsFlag::NoKeepAspectRatio));
+	SetSizes(gameSize, windowSize, initialScreenMode);
 
 #ifndef NDEBUG
 	while (ShowCursor_Real(TRUE) < 0) {}
